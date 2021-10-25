@@ -169,7 +169,7 @@ def coef_w_CRC40ed(t):
 # Return value:
 #   volumetric thermal expansion coefficient of water [1/degC], numpy array
 # ------------------------------------------------------------------------------
-def coef_w_IAPWS95(ifile, t, ofile=None):
+def coef_w_IAPWS95_tab(ifile, t, ofile=None):
   data = np.genfromtxt(ifile, delimiter='\t', names=True)
   # Thermal expansion computed from specific volume v and density \rho=1/v as:
   # $\alpha = \frac{1}{v} \frac{\partial v}{\partial T}$
@@ -257,7 +257,7 @@ def deltaV_thexp(vi, a, t, f):
   elif (f is 'const'):
     # Constant coefficient: equation (X1) of Coulibaly and Rotta Loria, 2022
     # $\Delta V = V_i[\exp(\alpha(T) \Delta T) - 1]$
-    vdiff = vi*(np.exp(a*t) - 1.0)
+    vdiff = vi*(np.exp(a*(t-t[0])) - 1.0)
   elif (f is 'small'):
     # Small expansion: equation (X2) of Coulibaly and Rotta Loria, 2022
     # $\Delta V = V_i \int_{T_i}^T \alpha(T) dT$
@@ -265,7 +265,7 @@ def deltaV_thexp(vi, a, t, f):
   elif (f is 'linear'):
     # Linear formula: equation (Y) of Coulibaly and Rotta Loria, 2022
     # $\Delta V = V_i \alpha(T) \Delta T
-    vdiff = vi*a*t
+    vdiff = vi*a*(t-t[0])
   return vdiff
 
 # ------------------------------------------------------------------------------
