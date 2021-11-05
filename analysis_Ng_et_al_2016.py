@@ -28,6 +28,8 @@ import matplotlib.pyplot as plt
 import scipy.integrate as integrate
 import thexp
 
+ONETHIRD = 1./3
+
 # ------------------------------------------------------------------------------
 # General information and data recovered from the paper for test DR70S200TC
 # Test DR70S200TC chosen because most of the data is available through the paper
@@ -40,39 +42,35 @@ n = e/(1.0 + e) # Initial porosity
 # Temperature [degC]
 temp = np.array([23, 30, 40, 50, 40, 30, 23], dtype=float)
 # Expelled volume [mm^3]
-vdr_measured = np.array([0, 132, 337, 527, 464, 342, 291], dtype=float)
+vdrm = np.array([0, 132, 337, 527, 464, 342, 291], dtype=float)
 # Volume calibration (vde) [mm^3]
 vde = np.array([0, 15, 41, 76, 55, 25, 7], dtype=float)
 # Water volume variation / total volume (vw/vi) [%]
 vw_v = np.array([0, 0.08, 0.224, 0.399, 0.233, 0.08, 0])
 # Solid volume variation / total volume (vs/vi) [%]
-vs_v = np.array([0, 0.003, 0.006, 0.001, 0.006, 0.003, 0])
+vs_v = np.array([0, 0.003, 0.006, 0.01, 0.006, 0.003, 0])
 # Leaked volume / total volume (mu*t/vi) [%]
 mut_v = np.array([0, 0.04, 0.088, 0.129, 0.225, 0.265, 0.31])
 # Volumetric strain [%]
 ev = np.array([0, 0.014, 0.028, -0.016, 0.014, 0.022, 0.022])
 
-# Corrected expelled volume of water [mm^3]
-vdr = vdr_measured - vde
-
 # The initial volume, not provided the paper, is back-calculated using the data
-# from Table 3 and equation (1). An average value of vi = 85941.25 mm^3 is
+# from Table 3 and equation (1). An average value of vi = 85689 mm^3 is
 # calculated from all the rows in Table 3 except for the first row which
 # corresponds to the initial state and is only zeros.
-vi = np.average(vdr[1:]/(ev[1:] + vw_v[1:] + vs_v[1:] + mut_v[1:]))*1e2
+vi = np.average((vdrm[1:]-vde[1:])/
+                (ev[1:] + vw_v[1:] + vs_v[1:] + mut_v[1:]))*1e2
 
 vw = vw_v*vi*1e-2 # Variation of water volume [mm3]
 vs = vs_v*vi*1e-2 # Variation of solid volume [mm3]
 vwi = vi*n # Initial water volume [mm^3]
 vsi = vi - vwi # Initial solid volume [mm^3]
 
-### Analysis 1: integration of the thermal expansion of water
+### Analysis 1: integration of the thermal expansion of water and grains
 # The text mentions that thermal expansion of water is computed using the linear
 # Equation $\Delta V_w = \alpha_w V_w \Delta T$ (Table 2). The data of Table 3
 # is compared to the different integration formulas proposed by Coulibaly and
 # Rotta Loria, 2022 to verify which one is actually used by Ng et al., 2016.
-
-
 
 # Different integrations of the thermal expansion of Baldi et al., 1988 used by
 # Ng et al., 2016. The cell pressures and back pressures used by Ng et al., 2016
@@ -80,15 +78,15 @@ vsi = vi - vwi # Initial solid volume [mm^3]
 # only once in the caption of Figure 1 and is considered in this calculation.
 
 u = 200e3 # Back pressure [Pa]
-aw_Baldi88 = thexp.coef_w_Baldi88(u,temp) # Baldi et al., 1988
+a_w = thexp.coef_w_Baldi88(u,temp) # Baldi et al., 1988
 # Exact integration, equation (9) in Coulibaly et al., 2022
-vw_v_exact = thexp.deltaV_thexp(n, aw_Baldi88, temp, 'exact')*1e2
+vw_v_exact = thexp.deltaV_thexp(n, a_w, temp, 'exact')*1e2
 # Constant coefficient integration, equation (10) in Coulibaly et al., 2022
-vw_v_const = thexp.deltaV_thexp(n, aw_Baldi88, temp, 'const')*1e2
+vw_v_const = thexp.deltaV_thexp(n, a_w, temp, 'const')*1e2
 # Small thermal expansion integration, equation (11) in Coulibaly et al., 2022
-vw_v_small = thexp.deltaV_thexp(n, aw_Baldi88, temp, 'small')*1e2
-# Linear thermal expansion integration, equation (12) in Coulibaly et al., 2022
-vw_v_lin = thexp.deltaV_thexp(n, aw_Baldi88, temp, 'linear')*1e2
+vw_v_small = thexp.deltaV_thexp(n, a_w, temp, 'small')*1e2
+# Linear thermal expansion formula, equation (12) in Coulibaly et al., 2022
+vw_v_lin = thexp.deltaV_thexp(n, a_w, temp, 'linear')*1e2
 
 plt.figure(1)
 plt.plot(temp, vw_v, 'ko', label=r"Ng et al., 2016 (Table 3)")
@@ -113,12 +111,174 @@ np.savetxt("tab_water_expansion_integration_Ng2016.csv",
 # expansion of water adequately, i.e. using equation () by Coulibaly and Rotta
 # Loria 2022, but wrongly wrote the linearized formula in text
 
+# We verify the correctness of the thermal expansion of the grains in Table 3
+# p. 127 "the linear thermal expansion [] of sand [] is 1e-5 1/degC"
+a_s = 3*1e-5*np.ones(len(temp))
+# Exact integration, equation (9) in Coulibaly et al., 2022
+vs_v_exact = thexp.deltaV_thexp(1.0-n, a_s, temp, 'exact')*1e2
+# Constant coefficient integration, equation (10) in Coulibaly et al., 2022
+vs_v_const = thexp.deltaV_thexp(1.0-n, a_s, temp, 'const')*1e2
+# Small thermal expansion integration, equation (11) in Coulibaly et al., 2022
+vs_v_small = thexp.deltaV_thexp(1.0-n, a_s, temp, 'small')*1e2
+# Linear thermal expansion formula, equation (12) in Coulibaly et al., 2022
+vs_v_lin = thexp.deltaV_thexp(1.0-n, a_s, temp, 'linear')*1e2
+
+plt.figure(2)
+plt.plot(temp, vs_v, 'ko', label=r"Ng et al., 2016 (Table 3)")
+plt.plot(temp, vs_v*4.7, 'ro', label=r"Ng et al., 2016 (x4.7)")
+plt.plot(temp, vs_v_exact, label=r"Exact integration")
+plt.plot(temp, vs_v_const, label=r"Constant coefficient")
+plt.plot(temp, vs_v_small, label=r"Small coefficient")
+plt.plot(temp, vs_v_lin, label=r"Linear")
+plt.plot(temp, vs_v - vs_v_lin, label="Correction")
+plt.xlabel(r'Temperature $T$ [degC]')
+plt.ylabel(r'Volume change of grains relative to total volume $\Delta V_s/V_i$ [%]')
+plt.title("Integration of thermal expansion of grains")
+plt.legend()
+
+# The resuls show a very important mismatch between the data reported in Table 3
+# and the results computed here based on the information available in the paper.
+# The values in Table 3 are about 4.7 times smaller than what they should be !
+# The fact that this factor is consistent show that there must be a mistake in
+# the calculation of the thermal expansion of the grains by Ng et al., 2016
 
 
 
-### Analysis X: Uncertainty quantification
+
+### Analysis 2: Uncertainty quantification
+# Conservative assumption: accuracy considered equal to 3 standard deviations
+# When no values of accuracy or standard deviations are given, conservative
+# estimates suggested by Coulibaly and Rotta Loria 2022 are used.
+
+# In the work of Ng et al., 2016, the leakage is added to the formula for the
+# calculation of the thermally induced strain equation (1). This term is not
+# present in the formula of Coulibaly and Rotta Loria 2022 and in the functions
+# developped ehrein. To account for it, the volume of leakage will be added as
+# part of the calibration volume, i.e. vcal = vde + mut. Because the volume of
+# leakage is obtained by measurment using the same volume-pressure controller
+# that measures all water volumes, the standard deviation of the calibration
+# volume will be affected by a factor of sqrt(2). This factor comes from the
+# fact that variances on both measurements are considered equal and independent
+# so that variance(vcal) = 2*variance(vde) and s_vcal = sqrt(2)*s(vde)
+
+# Initial density of solid [g/mm^3]
+rhos = 2.65*1e-3 # Toyoura sand, from Verdugo and Ishihara, 1996
+s_rhos = ONETHIRD*0.01*1e-3 # Standard deviation of initial density (estimate, Coulibaly Rotta Loria 2022)
+
+# Mass of solid grains [g]
+ms = rhos*vsi # Computed from initial solid volume and density
+s_ms = ONETHIRD*0.01 # Standard deviation of solid grains mass (estimated, Coulibaly Rotta Loria 2022)
+
+# Measured expelled volume of water [mm^3]
+# vdrm given above in the general data section
+s_vdrm = ONETHIRD*9 # accuracy of 9 mm^3 (bottom of Table 2)
+
+# Calibration of the expelled volume measurement [mm^3]
+vcal = vde + mut_v*vi*1e-2 # Leakage and expansion of drainage, both calibration
+s_vcal = ONETHIRD*9*np.sqrt(2) # accuracy of 9 mm^3, same as Vdrm
+
+# Thermal expansion coefficient of the solid grains [1/degC]
+a_s = 3e-5*np.ones(len(temp)) # p. 127 "the linear thermal expansion [] of sand [] is 1e-5 1/degC"
+s_as = ONETHIRD*3.7e-5 # Accuracy estimate from Campanella and Mitchell 1968
+
+# Thermal expansion coefficient of water [1/degC]
+# a_w computed above during Analysis 1
+s_aw = 0.0 # Systematic error using Baldi et al., 1988, but no random error
+
+# Temperature [degC]
+# temp obtained above in the general data section
+s_temp = ONETHIRD*0.1 # Accuracy estimate, e.g., Cekerevac et al., 2005
+
+# Initial sample volume [mm3]
+# vi computed above during Analysis 1
+s_vi = ONETHIRD*1134 # Standard deviation of initial volume, estimated from 1mm height accuracy and D~38mm for 2:1 aspect ratio: 1134 mm^3, if height, vi*dh/H also works
+
+dic = {"vi":0, "ms":1, "rhos":2, "as":3, "aw":4, "t":5, "vdrm":6, "vcal":7}
+val = [vi, ms, rhos, a_s, a_w, temp, vdrm, vcal]
+std = [s_vi, s_ms, s_rhos, s_as, s_aw, s_temp, s_vdrm, s_vcal]
+uq = thexp.propagationUQ(dic, val, std)
 
 
+plt.figure(3)
+plt.plot(temp,uq[1][dic["vi"]], label='factor V, Ng et al., 2016')
+plt.plot(temp,uq[1][dic["vcal"]], label='factor Vcal, Ng et al., 2016')
+plt.plot(temp,uq[1][dic["vdrm"]], label='factor Vdrm, Ng et al., 2016')
+plt.plot(temp,uq[1][dic["ms"]], label='factor ms and rhos, Ng et al., 2016')
+plt.plot(temp,uq[1][dic["as"]], label='factor as, Ng et al., 2016')
+plt.plot(temp,uq[1][dic["aw"]], label='factor aw, Ng et al., 2016')
+plt.plot(temp,uq[1][dic["t"]], label='factor t, Ng et al., 2016')
+plt.xlabel(' Temperature [degC]')
+plt.ylabel('Uncertainty factors multiplying variance [-]')
+plt.title("Uncertainty quantification for Ng et al., 2016")
+plt.legend()
+
+
+plt.figure(4)
+plt.plot(ev, temp, 'k', label='DR70S200TC')
+plt.plot(ev + 1*uq[0]*1e2, temp, '--', label='DR70S200TC+1std')
+plt.plot(ev + 2*uq[0]*1e2, temp, '--', label='DR70S200TC+2std')
+plt.plot(ev + 3*uq[0]*1e2, temp, '--', label='DR70S200TC+3std')
+plt.plot(ev - 1*uq[0]*1e2, temp, '-.', label='DR70S200TC-1std')
+plt.plot(ev - 2*uq[0]*1e2, temp, '-.', label='DR70S200TC-2std')
+plt.plot(ev - 3*uq[0]*1e2, temp, '-.', label='DR70S200TC-3std')
+plt.xlabel('Volumetric strain [%]')
+plt.ylabel(' Temperature [degC]')
+plt.title("Uncertainty quantification for Ng et al., 2016")
+plt.legend()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Initial porosity, void ratio
+n = 1.0 - ms/rhos/vi
+e = (1.0 - n) / n
+
+# Temperature
+ti = 20 # Initial tmperature [degC]
+tf = 55 # Finale [degC]
+dt = 1 # Temperature increment [degC]
+t = np.arange(ti,tf+dt,dt)
+delt = t-t[0] # temperature variation
+s_t = 0.1 # Standard deviation of current temperature [degC]
+cov_t = s_t / t # # Coefficient of variation of temperature [m^3]
+
+# Expelled water volume
+vdr = time_series() # Volume of water expelled, corrected [m^3]
+s_vcal = 1 # Standard deviation of volume measurement [m^3]
+cov_vcal = s_vcal / vdr # Coefficient of variation of volume measurement [m^3]
+
+# Thermal expansion of water
+# Thermal expansion computed using the small variations assumption
+a_w = thexp.coef_w_IAPWS95_tab("water_IAPWS95_100kPa_10-90-0.5degC", temp) # Thermal expansion of water [1 / degC]
+int_aw = thexp.deltaV_thexp(1.0, a_w, t, 'small') # Relative change based on vi = 1
+s_aw = 0.0 # Standard deviation of Thermal expansion of water [1 / degC] # Considered negligible
+cov_aw = s_aw / a_w # Coefficient of variation of Thermal expansion of water [1 / degC]
+
+# Thermal expansion of solid grains
+a_s = 3.5e-5 # Thermal expansion of solid grains [1 / degC]
+int_as = thexp.deltaV_thexp(1.0, a_s, t, 'small') # Relative change based on vi = 1
+s_as = 1e-5 # Standard deviation of Thermal expansion of solid grains [1 / degC]
+cov_as = s_as / a_s # Coefficient of variation of Thermal expansion of solid grains [1 / degC]
 
 
 
