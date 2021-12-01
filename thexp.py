@@ -1,12 +1,9 @@
 """
-Licensing information TBD
 
 Python 2
 Scipy version 1.2.1
 Numpy version 1.16.2
 Jibril B. Coulibaly, jibril.coulibaly at gmail.com
-
-Volumetric Thermal expansion of Water, formula from Baldi et al., 1988, taken from Juza 1966
 
 Everything in SI units
 
@@ -18,7 +15,19 @@ Degrees Rankine [degR]
 
 No exceptions checked for invalid inputs. Users responsability
 
-See the README file in the top-level XXX directory.
+Copyright (C) 2021 Mechanics and Energly Laboratory, Northwestern University
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+See the README file in the top-level TIDAL directory.
 """
 
 import numpy as np
@@ -235,57 +244,65 @@ def coef_s_Kosinski91(t, order):
           coef_vol[5]*t**5)
 
 # ------------------------------------------------------------------------------
-# Computes and returns the variation of volume due to thermal expansion using
-# either exact integration, constant value of the thermal expansion coefficient,
-# small values of the thermal expansion coefficient, or linear formula according
-# to equation (X) to (Y), respectively of Coulibaly and Rotta Loria, 2022:
-# $\Delta V / V_i = \exp(\int_{T_i}^T \alpha(T) dT) - 1$
+# Computes and returns the variation of volume of the solid grains due to
+# thermal expansion using either exact integration, small values of the thermal
+# expansion coefficient, or linear formula according to equation (X) to (Y),
+# respectively, of Coulibaly and Rotta Loria, 2022.
 # Arguments:
-#   vi: initial volume of water/solid inside the sample [mm^3]
-#   a: volumetric thermal expansion coefficient [1/degC], numpy array
+#   vsi: initial volume of solid inside the sample [mm^3]
+#   a_s: volumetric thermal expansion coefficient of solid [1/degC], numpy array
 #   t: temperature [degC], numpy array, dtype=float
 #   f: integration formula, string {'exact', 'const', 'small', 'linear'}
 # Return value:
-#   relative volume variation [-], numpy array
+#   Volume variation of solid grains [mm^3], numpy array
 # ------------------------------------------------------------------------------
-def deltaV_thexp(vi, a, t, f):
-  vdiff = 0.0
+def deltaVs(vsi, a_s, t, f):
+  delvs = 0.0
   if (f is 'exact'):
     # Exact integration: equation (X) of Coulibaly and Rotta Loria, 2022
     # $\Delta V = V_i[\exp(\int_{T_i}^T \alpha(T) dT) - 1]$
-    vdiff = vi*(np.exp(integrate.cumtrapz(a, t, initial=0)) - 1.0)
-  elif (f is 'const'):
-    # Constant coefficient: equation (X1) of Coulibaly and Rotta Loria, 2022
-    # $\Delta V = V_i[\exp(\alpha(T) \Delta T) - 1]$
-    vdiff = vi*(np.exp(a*(t-t[0])) - 1.0)
+    delvs = vsi*(np.exp(integrate.cumtrapz(a_s, t, initial=0)) - 1.0)
   elif (f is 'small'):
     # Small expansion: equation (X2) of Coulibaly and Rotta Loria, 2022
     # $\Delta V = V_i \int_{T_i}^T \alpha(T) dT$
-    vdiff = vi*integrate.cumtrapz(a, t, initial=0)
+    delvs = vsi*integrate.cumtrapz(a_s, t, initial=0)
   elif (f is 'linear'):
     # Linear formula: equation (Y) of Coulibaly and Rotta Loria, 2022
     # $\Delta V = V_i \alpha(T) \Delta T
-    vdiff = vi*a*(t-t[0])
-  return vdiff
+    delvs = vsi*a_s*(t-t[0])
+  return delvs
 
 # ------------------------------------------------------------------------------
-# Computes and returns the water volume inside the sample during heating using
-# the exact differential equation (XXXX) of Coulibaly and Rotta Loria, 2022:
-# $\Delta V_w = \exp(\int_{T_i}^T \alpha(T)dT) [V_{w,i} - 
-#               \int_{t_i}^t \exp(-\int_{T_i}^T \alpha(T)dT) dV_{dr}] - V_{w,i}$
+# Computes and returns the variation of water volume inside the sample due to
+# the combined effects of thermal expansion and expelled water using either
+# exact integration, small values of the thermal expansion coefficient, or
+# linear formula according to equations (XXXX) to (Y), respectively, of
+# Coulibaly and Rotta Loria, 2022.
 # Arguments:
 #   vwi: initial volume of water inside the sample [mm^3]
 #   aw: volumetric thermal expansion coefficient of water [1/degC], numpy array
 #   vdr: volume of water expelled from the sample [mm^3], numpy array
 #   t: temperature [degC], numpy array, dtype=float
+#   f: integration formula, string {'exact', 'const', 'small', 'linear'}
 # Return value:
 #   time series of the volume of water inside the sample [mm^3], numpy array
 # ------------------------------------------------------------------------------
-def deltaVw_exact(vwi, aw, vdr, t):
-  intat = integrate.cumtrapz(aw, t, initial=0)
-  expintat = np.exp(intat)
-  expintatinv = np.exp(-intat)
-  return expintat*(vwi - integrate.cumtrapz(expintatinv, vdr, initial=0))
+def deltaVw(vwi, aw, vdr, t, f):
+  delvw = 0.0
+  if (f is 'exact'):
+    # Exact integration: equation (X) of Coulibaly and Rotta Loria, 2022
+    intat = integrate.cumtrapz(aw, t, initial=0)
+    expintat = np.exp(intat)
+    expintatinv = np.exp(-intat)
+    delvw = vwi*expintat - expintat*integrate.cumtrapz(expintatinv,
+                                                       vdr,initial=0)
+  elif (f is 'small'):
+    # Small expansion: equation (X2) of Coulibaly and Rotta Loria, 2022
+    delvw = vwi*integrate.cumtrapz(aw, t, initial=0) - vdr
+  elif (f is 'linear'):
+    # Small expansion: equation (X2) of Coulibaly and Rotta Loria, 2022
+    delvw = vwi*aw*(t-t[0]) - vdr
+  return delvw
 
 # ------------------------------------------------------------------------------
 # Computes the propagation of uncertainty on the volumetric strain formula
