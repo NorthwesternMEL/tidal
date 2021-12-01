@@ -81,6 +81,6 @@ np.savetxt("tab_integration_solid.csv",
                            dVs_lo_lin[:,np.newaxis]*1e2,
                            dVs_hi_lin[:,np.newaxis]*1e2), axis=1),
            header=("temp_degC,dVs_Vs_kos91_exact_pct,dVs_Vs_kos91_small_pct,"+
-                   "dVs_Vs_kos91_linear_pct,dVs_Vs_as=3e-5_lin_pct"+
+                   "dVs_Vs_kos91_linear_pct,dVs_Vs_as=3e-5_lin_pct,"+
                    "dVs_Vs_as=3.5e-5_lin_pct"),
            delimiter=',')

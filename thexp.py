@@ -183,8 +183,10 @@ def coef_w_IAPWS95_tab(ifile, t, ofile=None):
   # Thermal expansion computed from specific volume v and density \rho=1/v as:
   # $\alpha = \frac{1}{v} \frac{\partial v}{\partial T}$
   # $\alpha = \rho \frac{\partial v}{\partial T}$
-  # First / last values computed using 1st order forward / backward difference
-  # Other values computed using 2nd order central difference
+  # All values computed using 2nd order central difference except for the
+  # first / last values computed using 1st order forward / backward difference
+  # Do not use first/last values: less precise, only here to maintain size
+
   thexp = np.zeros(len(data))
   thexp[0] = ((data["Volume_m3kg"][1] - data["Volume_m3kg"][0])/
               (data["Temperature_C"][1] - data["Temperature_C"][0]))
@@ -201,8 +203,47 @@ def coef_w_IAPWS95_tab(ifile, t, ofile=None):
                fmt = ['%.2f', '%.3e'],
                header="temperature_degC,thermal_expansion_1perdegC",
                delimiter=",")
-
   return np.interp(t,data["Temperature_C"],thexp)
+
+# ------------------------------------------------------------------------------
+# Computes and returns best-fit polynomial for the volumetric thermal expansion
+# coefficient of liquid water from IAPWS-95 on chosen temperature and pressure
+# range. The function can compute the polynomial fit, or return existing
+# hard-coded values previously computed using this function. When computing new
+# values, additional arguments are required. When accessing existing values,
+# only the preset value sought and the temperature range should be specified.
+# Arguments:
+#   preset: determines how the function is operated, string. Must be 'compute'
+#   when new value is computed, or an existing preset string when accessing
+#   existing value
+#   t: temperature [degC], numpy array
+#   awl: thermal expansion coefficients at various pressure, [1/degC],
+#        list of numpy arrays (all arrays must be the same length as t)
+#   deg: degree of polynomial fit
+#   ofile: (optional) path to output CSV file with temperature and expansion
+# Return value:
+#   volumetric thermal expansion coefficient of water [1/degC], numpy array
+#   coefficient of the polynomial fit
+# ------------------------------------------------------------------------------
+def coef_w_IAPWS95_fit(preset, t, awl=None, deg=None, ofile=None):
+  if (preset == 'compute'):
+    n = len(awl)
+    coef = np.polyfit(np.tile(t,n), np.concatenate(awl), deg)
+  elif (preset == 'd3_t20-80_p50-1000'):
+    # Preset values obtained for 3rd degree polynomial,
+    # temperature range T=[20;80] degC, pressure range p=[50;1000] kPa
+    # in example file "comparison_thermal_expansion_formulas_water.py"
+    # Equation (11) in Coulibaly and Rotta Loria, 2022
+    coef = [4.416308e-10, -1.030440e-07, 1.381959e-05, -3.054531e-05]
+
+  fit = np.polyval(coef, t)
+  if (ofile is not None):
+    np.savetxt(ofile,
+               np.concatenate((t[:,np.newaxis],fit[:,np.newaxis]),axis=1),
+               fmt = ['%.2f', '%.3e'],
+               header="temperature_degC,thermal_expansion_1perdegC",
+               delimiter=",")
+  return fit, coef
 
 # ------------------------------------------------------------------------------
 # Computes and returns volumetric thermal expansion coefficient of crystalline
@@ -258,15 +299,15 @@ def coef_s_Kosinski91(t, order):
 # ------------------------------------------------------------------------------
 def deltaVs(vsi, a_s, t, f):
   delvs = 0.0
-  if (f is 'exact'):
+  if (f == 'exact'):
     # Exact integration: equation (X) of Coulibaly and Rotta Loria, 2022
     # $\Delta V = V_i[\exp(\int_{T_i}^T \alpha(T) dT) - 1]$
     delvs = vsi*(np.exp(integrate.cumtrapz(a_s, t, initial=0)) - 1.0)
-  elif (f is 'small'):
+  elif (f == 'small'):
     # Small expansion: equation (X2) of Coulibaly and Rotta Loria, 2022
     # $\Delta V = V_i \int_{T_i}^T \alpha(T) dT$
     delvs = vsi*integrate.cumtrapz(a_s, t, initial=0)
-  elif (f is 'linear'):
+  elif (f == 'linear'):
     # Linear formula: equation (Y) of Coulibaly and Rotta Loria, 2022
     # $\Delta V = V_i \alpha(T) \Delta T
     delvs = vsi*a_s*(t-t[0])
@@ -289,17 +330,17 @@ def deltaVs(vsi, a_s, t, f):
 # ------------------------------------------------------------------------------
 def deltaVw(vwi, aw, vdr, t, f):
   delvw = 0.0
-  if (f is 'exact'):
+  if (f == 'exact'):
     # Exact integration: equation (X) of Coulibaly and Rotta Loria, 2022
     intat = integrate.cumtrapz(aw, t, initial=0)
     expintat = np.exp(intat)
     expintatinv = np.exp(-intat)
     delvw = vwi*expintat - expintat*integrate.cumtrapz(expintatinv,
                                                        vdr,initial=0)
-  elif (f is 'small'):
+  elif (f == 'small'):
     # Small expansion: equation (X2) of Coulibaly and Rotta Loria, 2022
     delvw = vwi*integrate.cumtrapz(aw, t, initial=0) - vdr
-  elif (f is 'linear'):
+  elif (f == 'linear'):
     # Small expansion: equation (X2) of Coulibaly and Rotta Loria, 2022
     delvw = vwi*aw*(t-t[0]) - vdr
   return delvw
@@ -356,8 +397,8 @@ def propagationUQ(dic, val, std):
   n = 1.0 - vs/vi # Initial porosity
   delt = t - t[0] # Temperature variation
   # Relative thermal expansion computed using the small variations assumption
-  int_as = deltaV_thexp(1.0, a_s, t, 'small') # Solid grains
-  int_aw = deltaV_thexp(1.0, a_w, t, 'small') # Water
+  int_as = deltaVs(1.0, a_s, t, 'small') # Solid grains
+  int_aw = deltaVw(1.0, a_w, 0.0, t, 'small') # Water (decoupled formula, vdr=0)
 
   ### Factors that multiply coefficient of variation of each variables
   f = [None]*len(dic)
