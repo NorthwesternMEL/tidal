@@ -44,7 +44,7 @@ import thexp
 ti = 25 # Initial temperature [degC]
 tf = 55 # Final temperature [degC]
 tincr = 1 # Temperature increment [degC]
-temp = np.arange(ti, tf + tincr, tincr, dtype=float)
+temp = np.arange(ti, tf + 0.5*tincr, tincr, dtype=float)
 
 # Volumetric thermal expansion coefficient of water
 as_lo = 3e-5 # Value used by Ng et al., 2016 [1/degC]
@@ -80,7 +80,7 @@ np.savetxt("tab_integration_solid.csv",
                            dVs_kos_lin[:,np.newaxis]*1e2,
                            dVs_lo_lin[:,np.newaxis]*1e2,
                            dVs_hi_lin[:,np.newaxis]*1e2), axis=1),
-           header=("temp_degC,dVs_Vs_kos91_exact_pct,dVs_Vs_kos91_small_pct,"+
-                   "dVs_Vs_kos91_linear_pct,dVs_Vs_as=3e-5_lin_pct,"+
-                   "dVs_Vs_as=3.5e-5_lin_pct"),
+           header=("temp_degC,dVs_Vsi_kos91_exact_pct,dVs_Vsi_kos91_small_pct,"+
+                   "dVs_Vsi_kos91_linear_pct,dVs_Vsi_as=3e-5_lin_pct,"+
+                   "dVs_Vsi_as=3.5e-5_lin_pct"),
            delimiter=',')

@@ -48,17 +48,17 @@ tcw = thexp.k2c(647.096) # Critical temperature of water [degC] (from IAPWS-95)
 tlo = 20 # Lower bound temperature [degC]
 thi = 80 # Upper bound temperature [degC]
 tincr = 0.5 # Temperature increment [degC]
-temp = np.arange(tlo, thi + tincr, tincr, dtype=float)
+temp = np.arange(tlo, thi + 0.5*tincr, tincr, dtype=float)
 # Add 1 increment of padding to the temperature for the IAPWS-95 so that thermal
 # expansion is calculated with 2nd order central differences at tlo and thi
-temp_pad = np.arange(tlo-tincr, thi + 2*tincr, tincr, dtype=float)
+tempad = np.arange(tlo-tincr, thi + 0.5*tincr + tincr, tincr, dtype=float)
 
 aw_Baldi88 = thexp.coef_w_Baldi88(patm,temp) # Baldi et al., 1988
 aw_Cekerevac05 = thexp.coef_w_Cekerevac05(patm,temp) # Cekerevac et al., 2005
 aw_Smith54 = thexp.coef_w_Smith54(tcw, temp) # Smith et al., 2005
 aw_Chapman74 = thexp.coef_w_Chapman74(temp) # Chapman, 1974
 aw_IAPWS95 = thexp.coef_w_IAPWS95_tab("dat_IAPWS95_1atm_10-90-0.5degC",
-                                      temp_pad)[1:-1] # IAPWS-95
+                                      tempad)[1:-1] # IAPWS-95
 aw_CRC40ed = thexp.coef_w_CRC40ed(temp) # CRC Handbook 40th ed, 1958-1959
 
 # Plot results and export to comma-separated tables
@@ -101,10 +101,10 @@ aw_Baldi88_1000kPa = thexp.coef_w_Baldi88(1000e3,temp)
 
 # IAPWS-95: tabulated values
 aw_IAPWS95_p = [
-  thexp.coef_w_IAPWS95_tab("dat_IAPWS95_50kPa_10-90-0.5degC", temp_pad)[1:-1],
-  thexp.coef_w_IAPWS95_tab("dat_IAPWS95_200kPa_10-90-0.5degC", temp_pad)[1:-1],
-  thexp.coef_w_IAPWS95_tab("dat_IAPWS95_400kPa_10-90-0.5degC", temp_pad)[1:-1],
-  thexp.coef_w_IAPWS95_tab("dat_IAPWS95_1MPa_10-90-0.5degC", temp_pad)[1:-1]]
+  thexp.coef_w_IAPWS95_tab("dat_IAPWS95_50kPa_10-90-0.5degC", tempad)[1:-1],
+  thexp.coef_w_IAPWS95_tab("dat_IAPWS95_200kPa_10-90-0.5degC", tempad)[1:-1],
+  thexp.coef_w_IAPWS95_tab("dat_IAPWS95_400kPa_10-90-0.5degC", tempad)[1:-1],
+  thexp.coef_w_IAPWS95_tab("dat_IAPWS95_1MPa_10-90-0.5degC", tempad)[1:-1]]
   
 # IAPWS-95: 3rd degree polynomial fitting of the IAPWS-95 values. Temperature
 # range T=[20 ; 80] degC and pressure range p=[50 ; 1000] kPa.

@@ -335,8 +335,8 @@ def deltaVw(vwi, aw, vdr, t, f):
     intat = integrate.cumtrapz(aw, t, initial=0)
     expintat = np.exp(intat)
     expintatinv = np.exp(-intat)
-    delvw = vwi*expintat - expintat*integrate.cumtrapz(expintatinv,
-                                                       vdr,initial=0)
+    delvw = vwi*(expintat - 1.0) - expintat*integrate.cumtrapz(expintatinv,
+                                                               vdr,initial=0)
   elif (f == 'small'):
     # Small expansion: equation (X2) of Coulibaly and Rotta Loria, 2022
     delvw = vwi*integrate.cumtrapz(aw, t, initial=0) - vdr
