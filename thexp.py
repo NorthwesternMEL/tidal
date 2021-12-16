@@ -15,7 +15,7 @@ Degrees Rankine [degR]
 
 No exceptions checked for invalid inputs. Users responsability
 
-Copyright (C) 2021 Mechanics and Energly Laboratory, Northwestern University
+Copyright (C) 2021 Mechanics and Energy Laboratory, Northwestern University
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -351,13 +351,13 @@ def deltaVw(vwi, aw, vdr, t, f):
 # returns variance on the thermally induced volumetric strain
 # Dictionary indexing variables according to the following fixed naming:
 # Initial volume of the sample: "vi"
+# Measured (not corrected) volume of expelled water: "vdrm"
+# Correction for the volume of expelled water: "vcal"
 # Initial mass of solid grains: "ms"
-# Initial density of solid grains: "rhos"
+# Initial density of solid grains: "rhosi"
 # Volumetric thermal expansion coefficient of solid grains: "as"
 # Volumetric thermal expansion coefficient of water: "aw"
 # Temperature: "t"
-# Measured (not corrected) volume of expelled water: "vdrm"
-# Calibration / correction for the volume of expelled water: "vcal"
 # Units and dimensions must be consistent between all input variables
 #
 #
@@ -369,68 +369,70 @@ def deltaVw(vwi, aw, vdr, t, f):
 #   list[0]: standard deviation of the thermally induced volumetric strain
 #   list[1]: list of variance factors with same indexing as input dictionary
 # ------------------------------------------------------------------------------
-def propagationUQ(dic, val, std):
+def propagUQ(dic, val, std):
   ### Unpack variables
   vi = val[dic["vi"]]
+  vdrm = val[dic["vdrm"]]
+  vcal = val[dic["vcal"]]
   ms = val[dic["ms"]]
-  rhos = val[dic["rhos"]]
+  rhosi = val[dic["rhosi"]]
   a_s = val[dic["as"]]
   a_w = val[dic["aw"]]
   t = val[dic["t"]]
-  vdrm = val[dic["vdrm"]]
-  vcal = val[dic["vcal"]]
   # Unpack standard deviations
   s_vi = std[dic["vi"]]
+  s_vdrm = std[dic["vdrm"]]
+  s_vcal = std[dic["vcal"]]
   s_ms = std[dic["ms"]]
-  s_rhos = std[dic["rhos"]]
+  s_rhosi = std[dic["rhosi"]]
   s_as = std[dic["as"]]
   s_aw = std[dic["aw"]]
   s_t = std[dic["t"]]
-  s_vdrm = std[dic["vdrm"]]
-  s_vcal = std[dic["vcal"]]
 
   ### Useful quantities
-  vs = ms/rhos # Initial volume of solid
-  # s_vs = see if and how needed after we clarify the paper
-  # s2_vdr = s_vdrm**2 + s_vcal**2 # Variance of corrected expelled water volume, see if and how needed after we clarify the paper
-  vdr = vdrm - vcal # Corrected volume of expelled water
-  n = 1.0 - vs/vi # Initial porosity
+  vsi = ms/rhosi # Initial volume of solid
+  ni = 1.0 - vsi/vi # Initial porosity
+  pfi = 1.0 - ni # Initial packing fraction (complement to 1 of porosity)
   delt = t - t[0] # Temperature variation
   # Relative thermal expansion computed using the small variations assumption
   int_as = deltaVs(1.0, a_s, t, 'small') # Solid grains
   int_aw = deltaVw(1.0, a_w, 0.0, t, 'small') # Water (decoupled formula, vdr=0)
 
-  ### Factors that multiply coefficient of variation of each variables
+  ### Factors that multiply squared coefficient of variation of each variables
   f = [None]*len(dic)
-  # Total volume. Equation () of Coulibaly and Rotta Loria, 2022
-  f[dic["vi"]] = (vdr/vi)**2 + ((1.0-n)*int_as)**2 + ((1.0-n)*int_aw)**2
-  # Solid mass. Equation () of Coulibaly and Rotta Loria, 2022
-  f[dic["ms"]] = ((1.0-n)*int_as)**2 + ((1.0-n)*int_aw)**2
-  # Solid density. Equation () of Coulibaly and Rotta Loria, 2022
-  f[dic["rhos"]] = ((1.0-n)*int_as)**2 + ((1.0-n)*int_aw)**2 # Identical to ms
-  # Thermal expansion of solid. Equation () of Coulibaly and Rotta Loria, 2022
-  f[dic["as"]] = ((1.0-n)*a_s*delt)**2
-  # Thermal expansion of water. Equation () of Coulibaly and Rotta Loria, 2022
-  f[dic["aw"]] = (n*a_w*delt)**2
-  # Temperature. Equation () of Coulibaly and Rotta Loria, 2022
-  f[dic["t"]] = ((1.0-n)*a_s*delt)**2 + (n*a_w*delt)**2
-  # Measured expelled volume. Equation () of Coulibaly and Rotta Loria, 2022
-  f[dic["vdrm"]] = (vdr/vi)**2
-  # Correction of expelled volume. Equation () of Coulibaly and Rotta Loria, 2022
-  f[dic["vcal"]] = (vdr/vi)**2 # Identical to vdrm
+  # Total volume. Equation (26) of Coulibaly and Rotta Loria, 2022
+  f[dic["vi"]] = ((vdrm - vcal)/vi)**2 + (pfi*int_as)**2 + (pfi*int_aw)**2
+  # Measured expelled volume. Equation (27) of Coulibaly and Rotta Loria, 2022
+  f[dic["vdrm"]] = (vdrm/vi)**2
+  # Volume correction. Equation (28) of Coulibaly and Rotta Loria, 2022
+  f[dic["vcal"]] = (vcal/vi)**2
+  # Solid mass. Equation (29) of Coulibaly and Rotta Loria, 2022
+  f[dic["ms"]] = (pfi*int_as)**2 + (pfi*int_aw)**2
+  # Solid density. Equation (29) of Coulibaly and Rotta Loria, 2022
+  f[dic["rhosi"]] = (pfi*int_as)**2 + (pfi*int_aw)**2 # Identical to ms
+  # Thermal expansion of solid. Equation (30) of Coulibaly and Rotta Loria, 2022
+  f[dic["as"]] = (pfi*a_s*delt)**2
+  # Thermal expansion of water. Equation (31) of Coulibaly and Rotta Loria, 2022
+  f[dic["aw"]] = (ni*a_w*delt)**2
+  # Temperature. Equation (32) of Coulibaly and Rotta Loria, 2022
+  f[dic["t"]] = (pfi*a_s*delt)**2 + (ni*a_w*delt)**2
 
   # Compute coefficients of variations
   cov_vi = s_vi/vi
   cov_ms = s_ms/ms
-  cov_rhos = s_rhos/rhos
+  cov_rhosi = s_rhosi/rhosi
   cov_as = s_as/a_s
   cov_aw = s_aw/a_w
   cov_t = s_t/t
-  cov_vdrm = s_vdrm/vdr # Divivded by corrected volume vdr, maybe clarify on final larticle draft
-  cov_vcal = s_vcal/vdr # Divivded by corrected volume vdr, maybe clarify on final larticle draft
+  # Avoid division by zero for measured and corrected volumes
+  # Zero volume are changed to infinite so that division in COV is zero
+  vdrm[np.logical_and(vdrm<=0, vdrm>=0)] = np.inf
+  vcal[np.logical_and(vcal<=0, vcal>=0)] = np.inf
+  cov_vdrm = s_vdrm/vdrm
+  cov_vcal = s_vcal/vcal
 
   s_ev = np.sqrt(f[dic["vi"]]*cov_vi**2 + f[dic["ms"]]*cov_ms**2 +
-                 f[dic["rhos"]]*cov_rhos**2 + f[dic["as"]]*cov_as**2 +
+                 f[dic["rhosi"]]*cov_rhosi**2 + f[dic["as"]]*cov_as**2 +
                  f[dic["aw"]]*cov_aw**2 + f[dic["t"]]*cov_t**2 +
                  f[dic["vdrm"]]*cov_vdrm**2 + f[dic["vcal"]]*cov_vcal**2)
 

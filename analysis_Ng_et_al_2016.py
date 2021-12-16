@@ -1,14 +1,13 @@
 """
-Licensing information TBD
+Critical analysis the results of Ng et al., 2016: Volume change behaviour
+of saturated sand, Geotechnique Letters. 6:124-131
+DOI: https://doi.org/10.1680/jgele.15.00148
 
 Python 2
 Scipy version 1.2.1
 Numpy version 1.16.2
 Jibril B. Coulibaly, jibril.coulibaly at gmail.com
 
-Critical analysis the results of Ng et al., 2016: Volume change behaviour
-of saturated sand, Geotechnique Letters. 6:124-131
-DOI: https://doi.org/10.1680/jgele.15.00148
 
 Supplemental material to Coulibaly and Rotta Loria, 2022: Thermally induced
 deformation of soils: a critical revision of experimental methods. GETE
@@ -21,6 +20,20 @@ Kelvin [K]
 Degrees Rankine [degR]
 
 No exceptions checked for invalid inputs. Users responsability
+
+Copyright (C) 2021 Mechanics and Energy Laboratory, Northwestern University
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+See the README file in the top-level TIDAL directory.
 """
 
 import numpy as np
@@ -35,8 +48,9 @@ ONETHIRD = 1./3
 # Test DR70S200TC chosen because most of the data is available through the paper
 # ------------------------------------------------------------------------------
 
-e = 0.71 # Initial void ratio (Table 1)
-n = e/(1.0 + e) # Initial porosity
+ei = 0.71 # Initial void ratio (Table 1)
+ni = ei/(1.0 + ei) # Initial porosity
+pfi = 1.0 - ni # Initial packing fraction (complement to 1 of porosity)
 
 ### Values of volume change from Table 3
 # Temperature [degC]
@@ -63,7 +77,7 @@ vi = np.average((vdrm[1:]-vde[1:])/
 
 vw = vw_v*vi*1e-2 # Variation of water volume [mm3]
 vs = vs_v*vi*1e-2 # Variation of solid volume [mm3]
-vwi = vi*n # Initial water volume [mm^3]
+vwi = vi*ni # Initial water volume [mm^3]
 vsi = vi - vwi # Initial solid volume [mm^3]
 
 ### Analysis 1: integration of the thermal expansion of water and grains
@@ -73,39 +87,36 @@ vsi = vi - vwi # Initial solid volume [mm^3]
 # Rotta Loria, 2022 to verify which one is actually used by Ng et al., 2016.
 
 # Different integrations of the thermal expansion of Baldi et al., 1988 used by
-# Ng et al., 2016. The cell pressures and back pressures used by Ng et al., 2016
+# Ng et al., 2016. The confining and back pressures used by Ng et al., 2016
 # are not detailed in the paper. A back pressure of u = 200 kPa is mentionned
 # only once in the caption of Figure 1 and is considered in this calculation.
 
 u = 200e3 # Back pressure [Pa]
 a_w = thexp.coef_w_Baldi88(u,temp) # Baldi et al., 1988
 # Exact integration, equation (9) in Coulibaly et al., 2022
-vw_v_exact = thexp.deltaV_thexp(n, a_w, temp, 'exact')*1e2
-# Constant coefficient integration, equation (10) in Coulibaly et al., 2022
-vw_v_const = thexp.deltaV_thexp(n, a_w, temp, 'const')*1e2
-# Small thermal expansion integration, equation (11) in Coulibaly et al., 2022
-vw_v_small = thexp.deltaV_thexp(n, a_w, temp, 'small')*1e2
+vw_v_exact = thexp.deltaVw(ni, a_w, np.zeros(len(temp)), temp, 'exact')*1e2
+# Small thermal expansion integration, equation (10) in Coulibaly et al., 2022
+vw_v_small = thexp.deltaVw(ni, a_w, 0.0, temp, 'small')*1e2
 # Linear thermal expansion formula, equation (12) in Coulibaly et al., 2022
-vw_v_lin = thexp.deltaV_thexp(n, a_w, temp, 'linear')*1e2
+vw_v_lin = thexp.deltaVw(ni, a_w, 0.0, temp, 'linear')*1e2
 
 plt.figure(1)
 plt.plot(temp, vw_v, 'ko', label=r"Ng et al., 2016 (Table 3)")
 plt.plot(temp, vw_v_exact, label=r"Exact integration")
-plt.plot(temp, vw_v_const, label=r"Constant coefficient")
 plt.plot(temp, vw_v_small, label=r"Small coefficient")
 plt.plot(temp, vw_v_lin, label=r"Linear")
 plt.xlabel(r'Temperature $T$ [degC]')
-plt.ylabel(r'Volume change of water relative to total volume $\Delta V_w/V_i$ [%]')
+plt.ylabel('Volume change of water relative to sample volume, '+
+           r'$\Delta V_w/V_i$ [%]')
 plt.title("Integration of thermal expansion of water")
 plt.legend()
 
-np.savetxt("tab_water_expansion_integration_Ng2016.csv",
+np.savetxt("tab_Ng2016_integration_water.csv",
            np.concatenate((temp[:,np.newaxis], vw_v[:,np.newaxis],
-                           vw_v_exact[:,np.newaxis], vw_v_const[:,np.newaxis],
-                           vw_v_small[:,np.newaxis], vw_v_lin[:,np.newaxis]),
-                          axis=1),
-           header=("Vw_V_pct_Ng2016,Vw_V_pct_exact,Vw_V_pct_const,"+
-                   "Vw_V_pct_small,Vw_V_pct_linear"),
+                           vw_v_exact[:,np.newaxis], vw_v_small[:,np.newaxis],
+                           vw_v_lin[:,np.newaxis]), axis=1),
+           header=("temp_degC,dVw_Vwi_Ng2016_pct,dVw_Vwi_exact_pct,"+
+                   "dVw_Vwi_small_pct,dVw_Vwi_linear_pct"),
            delimiter=',')
 # The results seem to show that Ng et al., 2016 actually integrated the thermal
 # expansion of water adequately, i.e. using equation () by Coulibaly and Rotta
@@ -115,27 +126,32 @@ np.savetxt("tab_water_expansion_integration_Ng2016.csv",
 # p. 127 "the linear thermal expansion [] of sand [] is 1e-5 1/degC"
 a_s = 3*1e-5*np.ones(len(temp))
 # Exact integration, equation (9) in Coulibaly et al., 2022
-vs_v_exact = thexp.deltaV_thexp(1.0-n, a_s, temp, 'exact')*1e2
-# Constant coefficient integration, equation (10) in Coulibaly et al., 2022
-vs_v_const = thexp.deltaV_thexp(1.0-n, a_s, temp, 'const')*1e2
+vs_v_exact = thexp.deltaVs(pfi, a_s, temp, 'exact')*1e2
 # Small thermal expansion integration, equation (11) in Coulibaly et al., 2022
-vs_v_small = thexp.deltaV_thexp(1.0-n, a_s, temp, 'small')*1e2
+vs_v_small = thexp.deltaVs(pfi, a_s, temp, 'small')*1e2
 # Linear thermal expansion formula, equation (12) in Coulibaly et al., 2022
-vs_v_lin = thexp.deltaV_thexp(1.0-n, a_s, temp, 'linear')*1e2
+vs_v_lin = thexp.deltaVs(pfi, a_s, temp, 'linear')*1e2
 
 plt.figure(2)
 plt.plot(temp, vs_v, 'ko', label=r"Ng et al., 2016 (Table 3)")
 plt.plot(temp, vs_v*4.7, 'ro', label=r"Ng et al., 2016 (x4.7)")
 plt.plot(temp, vs_v_exact, label=r"Exact integration")
-plt.plot(temp, vs_v_const, label=r"Constant coefficient")
 plt.plot(temp, vs_v_small, label=r"Small coefficient")
 plt.plot(temp, vs_v_lin, label=r"Linear")
 plt.plot(temp, vs_v - vs_v_lin, label="Correction")
 plt.xlabel(r'Temperature $T$ [degC]')
-plt.ylabel(r'Volume change of grains relative to total volume $\Delta V_s/V_i$ [%]')
+plt.ylabel('Volume change of grains relative to sample volume, '
+           r'$\Delta V_s/V_i$ [%]')
 plt.title("Integration of thermal expansion of grains")
 plt.legend()
 
+np.savetxt("tab_Ng2016_integration_solid.csv",
+           np.concatenate((temp[:,np.newaxis], vs_v[:,np.newaxis],
+                           vs_v_exact[:,np.newaxis], vs_v_small[:,np.newaxis],
+                           vs_v_lin[:,np.newaxis]), axis=1),
+           header=("temp_degC,dVs_Vsi_Ng2016_pct,dVs_Vsi_exact_pct,"+
+                   "dVs_Vsi_small_pct,dVs_Vsi_linear_pct"),
+           delimiter=',')
 # The resuls show a very important mismatch between the data reported in Table 3
 # and the results computed here based on the information available in the paper.
 # The values in Table 3 are about 4.7 times smaller than what they should be !
@@ -159,14 +175,14 @@ plt.legend()
 # that measures all water volumes, the standard deviation of the calibration
 # volume will be affected by a factor of sqrt(2). This factor comes from the
 # fact that variances on both measurements are considered equal and independent
-# so that variance(vcal) = 2*variance(vde) and s_vcal = sqrt(2)*s(vde)
+# so that var(vcal) = 2*var(vde), and s_vcal = sqrt(2)*s(vde)
 
 # Initial density of solid [g/mm^3]
-rhos = 2.65*1e-3 # Toyoura sand, from Verdugo and Ishihara, 1996
-s_rhos = ONETHIRD*0.01*1e-3 # Standard deviation of initial density (estimate, Coulibaly Rotta Loria 2022)
+rhosi = 2.65*1e-3 # Toyoura sand, from Verdugo and Ishihara, 1996
+s_rhosi = ONETHIRD*0.01*1e-3 # Standard deviation of initial density (estimate, Coulibaly Rotta Loria 2022)
 
 # Mass of solid grains [g]
-ms = rhos*vsi # Computed from initial solid volume and density
+ms = rhosi*vsi # Computed from initial solid volume and density
 s_ms = ONETHIRD*0.01 # Standard deviation of solid grains mass (estimated, Coulibaly Rotta Loria 2022)
 
 # Measured expelled volume of water [mm^3]
@@ -178,7 +194,7 @@ vcal = vde + mut_v*vi*1e-2 # Leakage and expansion of drainage, both calibration
 s_vcal = ONETHIRD*9*np.sqrt(2) # accuracy of 9 mm^3, same as Vdrm
 
 # Thermal expansion coefficient of the solid grains [1/degC]
-a_s = 3e-5*np.ones(len(temp)) # p. 127 "the linear thermal expansion [] of sand [] is 1e-5 1/degC"
+#a_s computed above during Analysis 1
 s_as = ONETHIRD*3.7e-5 # Accuracy estimate from Campanella and Mitchell 1968
 
 # Thermal expansion coefficient of water [1/degC]
@@ -193,25 +209,23 @@ s_temp = ONETHIRD*0.1 # Accuracy estimate, e.g., Cekerevac et al., 2005
 # vi computed above during Analysis 1
 s_vi = ONETHIRD*1134 # Standard deviation of initial volume, estimated from 1mm height accuracy and D~38mm for 2:1 aspect ratio: 1134 mm^3, if height, vi*dh/H also works
 
-dic = {"vi":0, "ms":1, "rhos":2, "as":3, "aw":4, "t":5, "vdrm":6, "vcal":7}
-val = [vi, ms, rhos, a_s, a_w, temp, vdrm, vcal]
-std = [s_vi, s_ms, s_rhos, s_as, s_aw, s_temp, s_vdrm, s_vcal]
-uq = thexp.propagationUQ(dic, val, std)
-
+dic = {"vi":0, "vdrm":1, "vcal":2, "ms":3, "rhosi":4, "as":5, "aw":6, "t":7}
+val = [vi, vdrm, vcal, ms, rhosi, a_s, a_w, temp]
+std = [s_vi, s_vdrm, s_vcal, s_ms, s_rhosi, s_as, s_aw, s_temp]
+uq = thexp.propagUQ(dic, val, std)
 
 plt.figure(3)
 plt.plot(temp,uq[1][dic["vi"]], label='factor V, Ng et al., 2016')
-plt.plot(temp,uq[1][dic["vcal"]], label='factor Vcal, Ng et al., 2016')
 plt.plot(temp,uq[1][dic["vdrm"]], label='factor Vdrm, Ng et al., 2016')
-plt.plot(temp,uq[1][dic["ms"]], label='factor ms and rhos, Ng et al., 2016')
+plt.plot(temp,uq[1][dic["vcal"]], label='factor Vcal, Ng et al., 2016')
+plt.plot(temp,uq[1][dic["ms"]], label='factor ms and rhosi, Ng et al., 2016')
 plt.plot(temp,uq[1][dic["as"]], label='factor as, Ng et al., 2016')
 plt.plot(temp,uq[1][dic["aw"]], label='factor aw, Ng et al., 2016')
 plt.plot(temp,uq[1][dic["t"]], label='factor t, Ng et al., 2016')
 plt.xlabel(' Temperature [degC]')
-plt.ylabel('Uncertainty factors multiplying variance [-]')
+plt.ylabel('Error factors [-]')
 plt.title("Uncertainty quantification for Ng et al., 2016")
 plt.legend()
-
 
 plt.figure(4)
 plt.plot(ev, temp, 'k', label='DR70S200TC')
@@ -222,10 +236,21 @@ plt.plot(ev - 1*uq[0]*1e2, temp, '-.', label='DR70S200TC-1std')
 plt.plot(ev - 2*uq[0]*1e2, temp, '-.', label='DR70S200TC-2std')
 plt.plot(ev - 3*uq[0]*1e2, temp, '-.', label='DR70S200TC-3std')
 plt.xlabel('Volumetric strain [%]')
-plt.ylabel(' Temperature [degC]')
+plt.ylabel('Temperature [degC]')
 plt.title("Uncertainty quantification for Ng et al., 2016")
 plt.legend()
 
+np.savetxt("tab_Ng2016_UQ.csv",
+           np.concatenate((temp[:,np.newaxis], uq[1][dic["vi"]][:,np.newaxis],
+                           uq[1][dic["vdrm"]][:,np.newaxis],
+                           uq[1][dic["vcal"]][:,np.newaxis],
+                           uq[1][dic["ms"]][:,np.newaxis],
+                           uq[1][dic["as"]][:,np.newaxis],
+                           uq[1][dic["aw"]][:,np.newaxis],
+                           uq[1][dic["t"]][:,np.newaxis]), axis=1),
+           header=("temp_degC,F_Vi_Ng2016,F_Vdrme_Ng2016,F_Vcal_Ng2016,"+
+                   "F_ms_rhosi_Ng2016,F_as_Ng2016,F_aw_Ng2016,F_temp_Ng2016"),
+           delimiter=',')
 
 
 
@@ -240,8 +265,7 @@ plt.legend()
 
 
 
-
-
+### EVERYTHING BELOW THIS LINE IS TEMPORARY MEMO TO BE DELETED LATER ###
 
 
 
