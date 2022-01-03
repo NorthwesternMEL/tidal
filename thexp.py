@@ -285,65 +285,67 @@ def coef_s_Kosinski91(t, order):
           coef_vol[5]*t**5)
 
 # ------------------------------------------------------------------------------
-# Computes and returns the variation of volume of the solid grains due to
-# thermal expansion using either exact integration, small values of the thermal
-# expansion coefficient, or linear formula according to equation (X) to (Y),
-# respectively, of Coulibaly and Rotta Loria, 2022.
+# Computes and returns the variation of volume only due to thermal expansion
+# using exact integration, small values of the thermal expansion coefficient, or
+# linear formula according to equation (X), (Y), and (Z), respectively, of
+# Coulibaly and Rotta Loria, 2022. Function valid for water and solid grains
 # Arguments:
-#   vsi: initial volume of solid inside the sample [mm^3]
-#   a_s: volumetric thermal expansion coefficient of solid [1/degC], numpy array
+#   vi: initial volume of solid grains / water inside the sample [mm^3]
+#   b: volumetric thermal expansion coefficient[1/degC], numpy array
 #   t: temperature [degC], numpy array, dtype=float
 #   f: integration formula, string {'exact', 'const', 'small', 'linear'}
 # Return value:
-#   Volume variation of solid grains [mm^3], numpy array
+#   Volume variation of solid grains / water [mm^3], numpy array
 # ------------------------------------------------------------------------------
-def deltaVs(vsi, a_s, t, f):
-  delvs = 0.0
+def deltaVth(vi, b, t, f):
+  delv = 0.0
   if (f == 'exact'):
     # Exact integration: equation (X) of Coulibaly and Rotta Loria, 2022
     # $\Delta V = V_i[\exp(\int_{T_i}^T \alpha(T) dT) - 1]$
-    delvs = vsi*(np.exp(integrate.cumtrapz(a_s, t, initial=0)) - 1.0)
+    delv = vi*(np.exp(integrate.cumtrapz(b, t, initial=0)) - 1.0)
   elif (f == 'small'):
     # Small expansion: equation (X2) of Coulibaly and Rotta Loria, 2022
     # $\Delta V = V_i \int_{T_i}^T \alpha(T) dT$
-    delvs = vsi*integrate.cumtrapz(a_s, t, initial=0)
+    delv = vi*integrate.cumtrapz(b, t, initial=0)
   elif (f == 'linear'):
     # Linear formula: equation (Y) of Coulibaly and Rotta Loria, 2022
     # $\Delta V = V_i \alpha(T) \Delta T
-    delvs = vsi*a_s*(t-t[0])
-  return delvs
+    delv = vi*b*(t-t[0])
+  return delv
 
 # ------------------------------------------------------------------------------
 # Computes and returns the variation of water volume inside the sample due to
-# the combined effects of thermal expansion and expelled water using either
-# exact integration, small values of the thermal expansion coefficient, or
-# linear formula according to equations (XXXX) to (Y), respectively, of
-# Coulibaly and Rotta Loria, 2022.
+# the coupled effects of expelled water and thermal expansion according to
+# equation (24) of Coulibaly and Rotta Loria, 2022.
 # Arguments:
-#   vwi: initial volume of water inside the sample [mm^3]
-#   aw: volumetric thermal expansion coefficient of water [1/degC], numpy array
+#   bw: volumetric thermal expansion coefficient of water [1/degC], numpy array
 #   vdr: volume of water expelled from the sample [mm^3], numpy array
 #   t: temperature [degC], numpy array, dtype=float
-#   f: integration formula, string {'exact', 'const', 'small', 'linear'}
 # Return value:
-#   time series of the volume of water inside the sample [mm^3], numpy array
+#   Volume change of water due to coupled drainage-expansion [mm^3], numpy array
 # ------------------------------------------------------------------------------
-def deltaVw(vwi, aw, vdr, t, f):
-  delvw = 0.0
-  if (f == 'exact'):
-    # Exact integration: equation (X) of Coulibaly and Rotta Loria, 2022
-    intat = integrate.cumtrapz(aw, t, initial=0)
-    expintat = np.exp(intat)
-    expintatinv = np.exp(-intat)
-    delvw = vwi*(expintat - 1.0) - expintat*integrate.cumtrapz(expintatinv,
-                                                               vdr,initial=0)
-  elif (f == 'small'):
-    # Small expansion: equation (X2) of Coulibaly and Rotta Loria, 2022
-    delvw = vwi*integrate.cumtrapz(aw, t, initial=0) - vdr
-  elif (f == 'linear'):
-    # Small expansion: equation (X2) of Coulibaly and Rotta Loria, 2022
-    delvw = vwi*aw*(t-t[0]) - vdr
-  return delvw
+def deltaVw_dr(bw, vdr, t):
+  intat = integrate.cumtrapz(bw, t, initial=0)
+  expintat = np.exp(intat)
+  expintatinv = np.exp(-intat)
+  return expintat*integrate.cumtrapz(expintatinv,vdr,initial=0)
+
+# ------------------------------------------------------------------------------
+# Computes and returns the volume correction for the calibration tests using
+# a porous dummy sample, according to equations () and () of Coulibaly and
+# Rotta Loria, 2022, respectively. Thermal expansion computed using the small
+# variations assumption, equation ().
+# Arguments:
+#   vme: measured volume of water during calibration test on porous dummy [mm^3]
+#   vwi: initial volume of water inside the sample [mm^3]
+#   bw: volumetric thermal expansion coefficient of water [1/degC], numpy array
+#   bm: volumetric thermal expansion coefficient of dummy [1/degC], numpy array
+#   t: temperature [degC], numpy array, dtype=float
+# Return value:
+#   time series of the correction volume [mm^3], numpy array
+# ------------------------------------------------------------------------------
+def vcal_por(vme, vwi, bw, bm, t, f):
+  return deltaVw(vwi, bm - bw, -vme, t, f)
 
 # ------------------------------------------------------------------------------
 # Computes the propagation of uncertainty on the volumetric strain formula
@@ -372,8 +374,8 @@ def deltaVw(vwi, aw, vdr, t, f):
 def propagUQ(dic, val, std):
   ### Unpack variables
   vi = val[dic["vi"]]
-  vdrm = val[dic["vdrm"]]
-  vcal = val[dic["vcal"]]
+  vdrm = np.copy(val[dic["vdrm"]]) # Copy for potential modification to avoid
+  vcal = np.copy(val[dic["vcal"]]) # division by zero in the cov calculation
   ms = val[dic["ms"]]
   rhosi = val[dic["rhosi"]]
   a_s = val[dic["as"]]

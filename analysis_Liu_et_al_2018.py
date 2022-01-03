@@ -49,7 +49,7 @@ vsi = 732.4 # Initial solid volume (Figure 7) [cm^3]
 # Initial volume from sum: vi = vwi+vsi = 1004.8 cm^3
 # Initial volume from dimension: D_out = 100 mm, D_in = 60 mm, H = 200 mm
 # vi = H*pi*(D_out**2 - D_in**2)/4 = 1005.3 cm^3 (slight difference 0.5 cm^3)
-vi = vwi + vsi 
+vi = vwi + vsi
 ei = vwi/vsi # Initial void ratio
 ni = vwi/vi # Initial porosity
 pfi = 1.0 - ni # Initial packing fraction (complement to 1 of porosity)
