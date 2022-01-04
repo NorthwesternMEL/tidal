@@ -217,7 +217,7 @@ def coef_w_IAPWS95_tab(ifile, t, ofile=None):
 #   when new value is computed, or an existing preset string when accessing
 #   existing value
 #   t: temperature [degC], numpy array
-#   awl: thermal expansion coefficients at various pressure, [1/degC],
+#   bwl: thermal expansion coefficients at various pressure, [1/degC],
 #        list of numpy arrays (all arrays must be the same length as t)
 #   deg: degree of polynomial fit
 #   ofile: (optional) path to output CSV file with temperature and expansion
@@ -225,10 +225,10 @@ def coef_w_IAPWS95_tab(ifile, t, ofile=None):
 #   volumetric thermal expansion coefficient of water [1/degC], numpy array
 #   coefficient of the polynomial fit
 # ------------------------------------------------------------------------------
-def coef_w_IAPWS95_fit(preset, t, awl=None, deg=None, ofile=None):
+def coef_w_IAPWS95_fit(preset, t, bwl=None, deg=None, ofile=None):
   if (preset == 'compute'):
-    n = len(awl)
-    coef = np.polyfit(np.tile(t,n), np.concatenate(awl), deg)
+    n = len(bwl)
+    coef = np.polyfit(np.tile(t,n), np.concatenate(bwl), deg)
   elif (preset == 'd3_t20-80_p50-1000'):
     # Preset values obtained for 3rd degree polynomial,
     # temperature range T=[20;80] degC, pressure range p=[50;1000] kPa
@@ -254,7 +254,7 @@ def coef_w_IAPWS95_fit(preset, t, awl=None, deg=None, ofile=None):
 # coefficient along the a-axis and c-axis, recommended by the High Temperature
 # Materials, Mechanical, Electronic and Thermophysical Properties Information
 # Analysis Center (HTMIAC) are used. The volumetric thermal expansion is defined
-# as: \alpha = 2*CTE_{a-axis} + CTE_{c-axis}
+# as: \beta = 2*CTE_{a-axis} + CTE_{c-axis}
 # Arguments: 
 #   t: temperature in range [-50 ; 150] [degC], numpy array, dtype=float
 # Return value:
@@ -353,12 +353,12 @@ def vcal_por(vme, vwi, bw, bm, t, f):
 # returns variance on the thermally induced volumetric strain
 # Dictionary indexing variables according to the following fixed naming:
 # Initial volume of the sample: "vi"
-# Measured (not corrected) volume of expelled water: "vdrm"
+# Measured (not corrected) volume of expelled water: "vme"
 # Correction for the volume of expelled water: "vcal"
 # Initial mass of solid grains: "ms"
 # Initial density of solid grains: "rhosi"
-# Volumetric thermal expansion coefficient of solid grains: "as"
-# Volumetric thermal expansion coefficient of water: "aw"
+# Volumetric thermal expansion coefficient of solid grains: "bs"
+# Volumetric thermal expansion coefficient of water: "bw"
 # Temperature: "t"
 # Units and dimensions must be consistent between all input variables
 #
@@ -374,21 +374,21 @@ def vcal_por(vme, vwi, bw, bm, t, f):
 def propagUQ(dic, val, std):
   ### Unpack variables
   vi = val[dic["vi"]]
-  vdrm = np.copy(val[dic["vdrm"]]) # Copy for potential modification to avoid
+  vme = np.copy(val[dic["vme"]]) # Copy for potential modification to avoid
   vcal = np.copy(val[dic["vcal"]]) # division by zero in the cov calculation
   ms = val[dic["ms"]]
   rhosi = val[dic["rhosi"]]
-  a_s = val[dic["as"]]
-  a_w = val[dic["aw"]]
+  bs = val[dic["bs"]]
+  bw = val[dic["bw"]]
   t = val[dic["t"]]
   # Unpack standard deviations
   s_vi = std[dic["vi"]]
-  s_vdrm = std[dic["vdrm"]]
+  s_vme = std[dic["vme"]]
   s_vcal = std[dic["vcal"]]
   s_ms = std[dic["ms"]]
   s_rhosi = std[dic["rhosi"]]
-  s_as = std[dic["as"]]
-  s_aw = std[dic["aw"]]
+  s_bs = std[dic["bs"]]
+  s_bw = std[dic["bw"]]
   s_t = std[dic["t"]]
 
   ### Useful quantities
@@ -397,46 +397,46 @@ def propagUQ(dic, val, std):
   pfi = 1.0 - ni # Initial packing fraction (complement to 1 of porosity)
   delt = t - t[0] # Temperature variation
   # Relative thermal expansion computed using the small variations assumption
-  int_as = deltaVs(1.0, a_s, t, 'small') # Solid grains
-  int_aw = deltaVw(1.0, a_w, 0.0, t, 'small') # Water (decoupled formula, vdr=0)
+  int_bs = deltaVth(1.0, bs, t, 'small') # Solid grains
+  int_bw = deltaVth(1.0, bw, t, 'small') # Water (decoupled formula)
 
   ### Factors that multiply squared coefficient of variation of each variables
   f = [None]*len(dic)
   # Total volume. Equation (26) of Coulibaly and Rotta Loria, 2022
-  f[dic["vi"]] = ((vdrm - vcal)/vi)**2 + (pfi*int_as)**2 + (pfi*int_aw)**2
+  f[dic["vi"]] = ((vme - vcal)/vi)**2 + (pfi*int_bs)**2 + (pfi*int_bw)**2
   # Measured expelled volume. Equation (27) of Coulibaly and Rotta Loria, 2022
-  f[dic["vdrm"]] = (vdrm/vi)**2
+  f[dic["vme"]] = (vme/vi)**2
   # Volume correction. Equation (28) of Coulibaly and Rotta Loria, 2022
   f[dic["vcal"]] = (vcal/vi)**2
   # Solid mass. Equation (29) of Coulibaly and Rotta Loria, 2022
-  f[dic["ms"]] = (pfi*int_as)**2 + (pfi*int_aw)**2
+  f[dic["ms"]] = (pfi*int_bs)**2 + (pfi*int_bw)**2
   # Solid density. Equation (29) of Coulibaly and Rotta Loria, 2022
-  f[dic["rhosi"]] = (pfi*int_as)**2 + (pfi*int_aw)**2 # Identical to ms
+  f[dic["rhosi"]] = (pfi*int_bs)**2 + (pfi*int_bw)**2 # Identical to ms
   # Thermal expansion of solid. Equation (30) of Coulibaly and Rotta Loria, 2022
-  f[dic["as"]] = (pfi*a_s*delt)**2
+  f[dic["bs"]] = (pfi*bs*delt)**2
   # Thermal expansion of water. Equation (31) of Coulibaly and Rotta Loria, 2022
-  f[dic["aw"]] = (ni*a_w*delt)**2
+  f[dic["bw"]] = (ni*bw*delt)**2
   # Temperature. Equation (32) of Coulibaly and Rotta Loria, 2022
-  f[dic["t"]] = (pfi*a_s*delt)**2 + (ni*a_w*delt)**2
+  f[dic["t"]] = (pfi*bs*delt)**2 + (ni*bw*delt)**2
 
   # Compute coefficients of variations
   cov_vi = s_vi/vi
   cov_ms = s_ms/ms
   cov_rhosi = s_rhosi/rhosi
-  cov_as = s_as/a_s
-  cov_aw = s_aw/a_w
+  cov_bs = s_bs/bs
+  cov_bw = s_bw/bw
   cov_t = s_t/t
   # Avoid division by zero for measured and corrected volumes
   # Zero volume are changed to infinite so that division in COV is zero
-  vdrm[np.logical_and(vdrm<=0, vdrm>=0)] = np.inf
+  vme[np.logical_and(vme<=0, vme>=0)] = np.inf
   vcal[np.logical_and(vcal<=0, vcal>=0)] = np.inf
-  cov_vdrm = s_vdrm/vdrm
+  cov_vme = s_vme/vme
   cov_vcal = s_vcal/vcal
 
   s_ev = np.sqrt(f[dic["vi"]]*cov_vi**2 + f[dic["ms"]]*cov_ms**2 +
-                 f[dic["rhosi"]]*cov_rhosi**2 + f[dic["as"]]*cov_as**2 +
-                 f[dic["aw"]]*cov_aw**2 + f[dic["t"]]*cov_t**2 +
-                 f[dic["vdrm"]]*cov_vdrm**2 + f[dic["vcal"]]*cov_vcal**2)
+                 f[dic["rhosi"]]*cov_rhosi**2 + f[dic["bs"]]*cov_bs**2 +
+                 f[dic["bw"]]*cov_bw**2 + f[dic["t"]]*cov_t**2 +
+                 f[dic["vme"]]*cov_vme**2 + f[dic["vcal"]]*cov_vcal**2)
 
   return [s_ev,f]
 

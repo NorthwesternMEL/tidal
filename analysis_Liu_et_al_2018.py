@@ -58,16 +58,16 @@ pfi = 1.0 - ni # Initial packing fraction (complement to 1 of porosity)
 # Could potentially reverse-engineer initial volume for other pressures
 
 temp = np.array([25, 35, 45, 55], dtype=float) # Temperature [degC]
-vdrm = np.array([0.000, 0.430, 1.020, 1.740]) # Expelled volume [cm^3]
+vme = np.array([0.000, 0.430, 1.020, 1.740]) # Expelled volume [cm^3]
 vde = np.array([0.000, 0.090, 0.070, 0.040]) # Volume calibration (vcal) [cm^3]
-vdr = vdrm- vde # Corrected expelled volume [cm^3], MAYBE UNNECESSARY
+vdr = vme - vde # Corrected expelled volume [cm^3], MAYBE UNNECESSARY
 vw = np.array([0.000, 0.816, 1.852, 3.146]) # Water volume variation (vw) [cm^3]
 vs = np.array([0.000, 0.254, 0.511, 0.777]) # Solid volume variation (vs) [cm^3]
 
 
 ### Analysis 1: integration of the thermal expansion of water and grains
 # The text mentions that thermal expansion of water is computed using the linear
-# Equation $\Delta V_w = \alpha_w V_w \Delta T$ (equation (4) and (5)). The data
+# Equation $\Delta V_w = \beta_w V_w \Delta T$ (equation (4) and (5)). The data
 # of Table 3 is compared to the different integration formulas proposed by
 # Coulibaly and Rotta Loria, 2022 to verify which one is actually used by
 # Liu et al., 2018
@@ -75,13 +75,13 @@ vs = np.array([0.000, 0.254, 0.511, 0.777]) # Solid volume variation (vs) [cm^3]
 # Different integrations of the thermal expansion of CRC 40th edition used by
 # Liu et al., 2018. No pressure dependence in the CRC formula.
 
-a_w = thexp.coef_w_CRC40ed(temp) # CRC Handbook 40th ed, 1958
+bw = thexp.coef_w_CRC40ed(temp) # CRC Handbook 40th ed, 1958
 # Exact integration, equation (9) in Coulibaly et al., 2022
-vw_exact_CRC = thexp.deltaVw(vwi, a_w, np.zeros(len(temp)), temp, 'exact')
+vw_exact_CRC = thexp.deltaVth(vwi, bw, temp, 'exact')
 # Small thermal expansion integration, equation (10) in Coulibaly et al., 2022
-vw_small_CRC = thexp.deltaVw(vwi, a_w, 0.0, temp, 'small')
+vw_small_CRC = thexp.deltaVth(vwi, bw, temp, 'small')
 # Linear thermal expansion formula, equation (12) in Coulibaly et al., 2022
-vw_lin_CRC = thexp.deltaVw(vwi, a_w, 0.0, temp, 'linear')
+vw_lin_CRC = thexp.deltaVth(vwi, bw, temp, 'linear')
 
 plt.figure(1)
 plt.plot(temp, vw, 'ko', label=r"Liu et al., 2018 (Table 3)")
@@ -97,13 +97,13 @@ plt.legend()
 # the thermal expansion coefficient of water from the CRC Handbook 40th edition
 # Let's try the formula of Baldi et al., 1988 for back pressure of 300 kPa
 u = 300e3 # Back pressure [Pa]
-a_w = thexp.coef_w_Baldi88(u,temp) # Baldi et al., 1988
+bw = thexp.coef_w_Baldi88(u,temp) # Baldi et al., 1988
 # Exact integration, equation () in Coulibaly et al., 2022
-vw_exact_Baldi88 = thexp.deltaVw(vwi, a_w, np.zeros(len(temp)), temp, 'exact')
+vw_exact_Baldi88 = thexp.deltaVth(vwi, bw, temp, 'exact')
 # Small thermal expansion integration, equation () in Coulibaly et al., 2022
-vw_small_Baldi88 = thexp.deltaVw(vwi, a_w, 0.0, temp, 'small')
+vw_small_Baldi88 = thexp.deltaVth(vwi, bw, temp, 'small')
 # Linear thermal expansion formula, equation () in Coulibaly et al., 2022
-vw_lin_Baldi88 = thexp.deltaVw(vwi, a_w, 0.0, temp, 'linear')
+vw_lin_Baldi88 = thexp.deltaVth(vwi, bw, temp, 'linear')
 
 plt.figure(1)
 plt.plot(temp, vw_exact_Baldi88, '--', label=r"Exact (Baldi et al., 300 kPa)")
@@ -131,13 +131,13 @@ np.savetxt("tab_Liu2018_integration_water.csv",
 
 # We verify the correctness of the thermal expansion of the grains in Table 3
 # p. 6 "a value of 3.5e-3 %/degC is assumed", i.e. 3.5e-5 1/degC
-a_s = 3.5e-5*np.ones(len(temp))
+bs = 3.5e-5*np.ones(len(temp))
 # Exact integration, equation () in Coulibaly et al., 2022
-vs_exact = thexp.deltaVs(vsi, a_s, temp, 'exact')
+vs_exact = thexp.deltaVth(vsi, bs, temp, 'exact')
 # Small thermal expansion integration, equation () in Coulibaly et al., 2022
-vs_small = thexp.deltaVs(vsi, a_s, temp, 'small')
+vs_small = thexp.deltaVth(vsi, bs, temp, 'small')
 # Linear thermal expansion formula, equation () in Coulibaly et al., 2022
-vs_lin = thexp.deltaVs(vsi, a_s, temp, 'linear')
+vs_lin = thexp.deltaVth(vsi, bs, temp, 'linear')
 
 plt.figure(2)
 plt.plot(temp, vs, 'ko', label=r"Liu et al., 2018 (Table 3)")
@@ -182,20 +182,20 @@ ms = rhosi*vsi # Computed from initial solid volume and density
 s_ms = ONETHIRD*0.01 # Standard deviation of solid grains mass (estimated, Coulibaly Rotta Loria 2022)
 
 # Measured expelled volume of water [mm^3]
-# vdrm given above in the general data section
-s_vdrm = ONETHIRD*9 # accuracy of 9 mm^3 (bottom of Table 2)
+# Vme given above in the general data section
+s_vme = ONETHIRD*9 # accuracy of 9 mm^3 (bottom of Table 2)
 
 # Calibration of the expelled volume measurement [mm^3]
 vcal = vde
-s_vcal = ONETHIRD*9*np.sqrt(2) # accuracy of 9 mm^3, same as Vdrm
+s_vcal = ONETHIRD*9*np.sqrt(2) # accuracy of 9 mm^3, same as Vme
 
 # Thermal expansion coefficient of the solid grains [1/degC]
-#a_s computed above during Analysis 1
-s_as = ONETHIRD*3.7e-5 # Accuracy estimate from Campanella and Mitchell 1968
+# bs computed above during Analysis 1
+s_bs = ONETHIRD*3.7e-5 # Accuracy estimate from Campanella and Mitchell 1968
 
 # Thermal expansion coefficient of water [1/degC]
-# a_w computed above during Analysis 1. Formula of Baldi et al., 1988 is used
-s_aw = 0.0 # Systematic error using Baldi et al., 1988, but no random error
+# bw computed above during Analysis 1. Formula of Baldi et al., 1988 is used
+s_bw = 0.0 # Systematic error using Baldi et al., 1988, but no random error
 
 # Temperature [degC]
 # temp obtained above in the general data section
@@ -205,18 +205,18 @@ s_temp = ONETHIRD*0.1 # Accuracy estimate, e.g., Cekerevac et al., 2005
 # vi computed above during Analysis 1
 s_vi = ONETHIRD*1134 # Standard deviation of initial volume, estimated from 1mm height accuracy and D~38mm for 2:1 aspect ratio: 1134 mm^3, if height, vi*dh/H also works
 
-dic = {"vi":0, "vdrm":1, "vcal":2, "ms":3, "rhosi":4, "as":5, "aw":6, "t":7}
-val = [vi, vdrm, vcal, ms, rhosi, a_s, a_w, temp]
-std = [s_vi, s_vdrm, s_vcal, s_ms, s_rhosi, s_as, s_aw, s_temp]
+dic = {"vi":0, "vme":1, "vcal":2, "ms":3, "rhosi":4, "bs":5, "bw":6, "t":7}
+val = [vi, vme, vcal, ms, rhosi, bs, bw, temp]
+std = [s_vi, s_vme, s_vcal, s_ms, s_rhosi, s_bs, s_bw, s_temp]
 uq = thexp.propagUQ(dic, val, std)
 
 plt.figure(3)
 plt.plot(temp,uq[1][dic["vi"]], label='factor V, Liu et al., 2018')
-plt.plot(temp,uq[1][dic["vdrm"]], label='factor Vdrm, Liu et al., 2018')
+plt.plot(temp,uq[1][dic["vme"]], label='factor Vme, Liu et al., 2018')
 plt.plot(temp,uq[1][dic["vcal"]], label='factor Vcal, Liu et al., 2018')
 plt.plot(temp,uq[1][dic["ms"]], label='factor ms and rhosi, Liu et al., 2018')
-plt.plot(temp,uq[1][dic["as"]], label='factor as, Liu et al., 2018')
-plt.plot(temp,uq[1][dic["aw"]], label='factor aw, Liu et al., 2018')
+plt.plot(temp,uq[1][dic["bs"]], label='factor bs, Liu et al., 2018')
+plt.plot(temp,uq[1][dic["bw"]], label='factor bw, Liu et al., 2018')
 plt.plot(temp,uq[1][dic["t"]], label='factor t, Liu et al., 2018')
 plt.xlabel(' Temperature [degC]')
 plt.ylabel('Error factors [-]')
@@ -238,14 +238,14 @@ plt.legend()
 
 np.savetxt("tab_Liu2018_UQ.csv",
            np.concatenate((temp[:,np.newaxis], uq[1][dic["vi"]][:,np.newaxis],
-                           uq[1][dic["vdrm"]][:,np.newaxis],
+                           uq[1][dic["vme"]][:,np.newaxis],
                            uq[1][dic["vcal"]][:,np.newaxis],
                            uq[1][dic["ms"]][:,np.newaxis],
-                           uq[1][dic["as"]][:,np.newaxis],
-                           uq[1][dic["aw"]][:,np.newaxis],
+                           uq[1][dic["bs"]][:,np.newaxis],
+                           uq[1][dic["bw"]][:,np.newaxis],
                            uq[1][dic["t"]][:,np.newaxis]), axis=1),
-           header=("temp_degC,F_Vi_Liu2018,F_Vdrme_Liu2018,F_Vcal_Liu2018,"+
-                   "F_ms_rhosi_Liu2018,F_as_Liu2018,F_aw_Liu2018,F_temp_Liu2018"),
+           header=("temp_degC,F_Vi_Liu2018,F_Vme_Liu2018,F_Vcal_Liu2018,"+
+                   "F_ms_rhosi_Liu2018,F_bs_Liu2018,F_bw_Liu2018,F_temp_Liu2018"),
            delimiter=',')
 
 

@@ -43,7 +43,7 @@ tincr = 1 # Temperature increment [degC]
 temp = np.arange(ti, tf + 0.5*tincr, tincr, dtype=float)
 
 # ------------------------------------------------------------------------------
-# Comparison of thermal expansion integration formulas for solid grains
+# [1] Comparison of thermal expansion integration formulas for solid grains
 # ------------------------------------------------------------------------------
 
 # Volumetric thermal expansion coefficient of the solid grains
@@ -81,12 +81,12 @@ np.savetxt("tab_integration_solid_expansion.csv",
                            dVs_lo_lin[:,np.newaxis],
                            dVs_hi_lin[:,np.newaxis]), axis=1),
            header=("temp_degC,dVs_Vsi_kos91_exact_pct,dVs_Vsi_kos91_small_pct,"+
-                   "dVs_Vsi_kos91_linear_pct,dVs_Vsi_as=3e-5_lin_pct,"+
-                   "dVs_Vsi_as=3.5e-5_lin_pct"),
+                   "dVs_Vsi_kos91_linear_pct,dVs_Vsi_bs=3e-5_lin_pct,"+
+                   "dVs_Vsi_bs=3.5e-5_lin_pct"),
            delimiter=',')
 
 # ------------------------------------------------------------------------------
-# Comparison of thermal expansion integration formulas for water
+# [2] Comparison of thermal expansion integration formulas for water
 # ------------------------------------------------------------------------------
 
 # Volumetric thermal expansion coefficient of water from IAPWS-95 at atmospheric
@@ -125,31 +125,29 @@ np.savetxt("tab_integration_water_expansion.csv",
            delimiter=',')
 
 # ------------------------------------------------------------------------------
-# Coupling between expelled water and thermal expansion
+# [3] Coupling between expelled water and thermal expansion
 # ------------------------------------------------------------------------------
 
 ### (1) Expelled water volume data from Liu et al., 2018, test at p' = 50 kPa
 
+# Temperature and expelled water time series interpolated from Table 3
+t = np.array([25, 35, 45, 55], dtype=float) # Temperature [degC]
+vme = np.array([0.000, 0.430, 1.020, 1.740]) # Expelled volume [cm^3]
+vde = np.array([0.000, 0.090, 0.070, 0.040]) # Volume calibration (vcal) [cm^3]
+# Volume of expelled water [mm^3]. Neglect density ratio, equation () of
+# Coulibaly and Rotta Loria 2022
+vdr_tab = (vme - vde)*1e3 # [mm^3]
 # Initial volume (Fig. 7: vsi = 732.4 cm^3, vwi = 272.4 cm^3, vi = 1004.8 cm^3)
 vi = 1004.8e3 # [mm^3]
 
-# Temperature and expelled water time series digitized from Figure 7
-temp_in = np.genfromtxt("Liu2018_temp_in.csv", delimiter=',', names=True)
-temp_out = np.genfromtxt("Liu2018_temp_out.csv", delimiter=',', names=True)
-vexp = np.genfromtxt("Liu2018_expelled_volume.csv", delimiter=',', names=True)
-
-# Linear interpolation of the digitized values from 0 to 9h
-ti = 0. # Initial time [h]
-tf = 9. # Final time [h]
-tincr = 1./60 # Timestep [h] (choen as 1 minute)
-time = np.arange(ti, tf + 0.5*tincr, tincr, dtype=float) # Time [h]
-
-# Temperature of sample: average of the outer and inner temperatures [degC]
-temp = 0.5*(np.interp(time,temp_in["time_h"],temp_in["temp_C"]) +
-            np.interp(time,temp_out["time_h"],temp_out["temp_C"]))
-
-# Volume of water expelled [mm^3]
-vdr = np.interp(time,vexp["time_h"],vexp["vol_mm3"])
+# Linear interpolation (non-monotonic)
+npt = 500 # Number of interpolation points
+# Temperature (interpolated)
+temp = np.interp(np.linspace(0,t.size-1,npt),
+                 np.arange(t.size), t)
+# Volume of water expelled (interpolated)
+vdr = np.interp(np.linspace(0,vdr_tab.size-1,npt),
+                np.arange(vdr_tab.size), vdr_tab)
 
 # Volumetric thermal expansion coefficient of water from IAPWS-95 at 300 kPa
 # Add 1 increment of padding to the temperature for the IAPWS-95 so that thermal
@@ -160,10 +158,12 @@ bw = thexp.coef_w_IAPWS95_tab("dat_IAPWS95_300kPa_10-90-0.5degC", tempad)[1:-1]
 # Coupled drainage-expansion volume change of water [mm^3]
 # Equation (24) in Coulibaly et al., 2022
 dVw_dr = thexp.deltaVw_dr(bw, vdr, temp)
+# Relative error between coupled/uncoupled expressions
+relerr = (dVw_dr-vdr)/vi*1e2 # [%]
 
 # Plot results and export to comma-separated tables
 plt.figure(3)
-plt.plot(temp, (dVw_dr-vdr)/vi*1e2, label="Liu et al., 2018")
+plt.plot(temp, relerr, label="Liu et al., 2018")
 plt.xlabel(r'Temperature $T$ [degC]')
 plt.ylabel('Relative difference between coupled/uncoupled drainage-expansion '+
            r'$\Delta V_w^{dr}/V_i$ [%]')
@@ -171,34 +171,40 @@ plt.title("Figure 4 of Coulibaly and Rotta Loria 2022")
 plt.legend()
 
 np.savetxt("tab_integration_water_drainage_coupling_Liu2018.csv",
-           np.concatenate((time[:,np.newaxis],
-                           temp[:,np.newaxis],
+           np.concatenate((temp[:,np.newaxis],
                            dVw_dr[:,np.newaxis],
                            vdr[:,np.newaxis],
-                           (dVw_dr-vdr)[:,np.newaxis]/vi*1e2), axis=1),
-           header=("time_h,temp_degC,dVw_dr_mm3,dVdr_mm3,(dVw_dr-dVdr)/Vi_pct"),
+                           relerr[:,np.newaxis]), axis=1),
+           header=("temp_degC,dVw_dr_mm3,dVdr_mm3,(dVw_dr-dVdr)/Vi_pct"),
            delimiter=',')
 
-### (2) Expelled water volume data from Ng et al., 2016, test DR70S200TC
+### (2) Expelled water volume data from Ng et al., 2016, test D70S200TC
 
-# Initial volume vi = 85689 mm^3 back-calculated from Table 3. Calculations
-# available in file `analysis_Ng_et_al_2016.py`
+# Temperature and expelled water time series interpolated from Table 3
+# Temperature [degC]
+t = np.array([23, 30, 40, 50, 40, 30, 23], dtype=float)
+# Volume change measured by PVC [mm^3]
+vme = np.array([0, 132, 337, 527, 464, 342, 291], dtype=float)
+# Volume calibration (vde) [mm^3]
+vde = np.array([0, 15, 41, 76, 55, 25, 7], dtype=float)
+# Leaked volume / total volume (mu*t/vi) [%]
+mut_v = np.array([0, 0.04, 0.088, 0.129, 0.225, 0.265, 0.31])
+# Initial volume vi = 85689 mm^3 back-calculated from Table 3
+# Calculations available in file `analysis_Ng_et_al_2016.py`
 vi = 85689 # [mm^3]
+# Volume of expelled water [mm^3]. Neglect density ratio, equation () of
+# Coulibaly and Rotta Loria 2022
+vdr_tab = vme - vde - mut_v*vi*1e-2
 
-# Temperature and expelled water time series digitized from Figure 3
-texp = np.genfromtxt("Ng2016_temp.csv", delimiter=',', names=True)
-vexp = np.genfromtxt("Ng2016_expelled_volume.csv", delimiter=',', names=True)
 
-# Linear interpolation of the digitized values from 0 to 31h
-ti = 0. # Initial time [h]
-tf = 31. # Final time [h]
-tincr = 1./60 # Timestep [h] (choen as 1 minute)
-time = np.arange(ti, tf + 0.5*tincr, tincr, dtype=float) # Time [h]
-
+# Linear interpolation (non-monotonic)
+npt = 500 # Number of interpolation points
 # Temperature (interpolated)
-temp = np.interp(time,texp["time_h"],texp["temp_degC"])
+temp = np.interp(np.linspace(0,t.size-1,npt),
+                 np.arange(t.size), t)
 # Volume of water expelled (interpolated)
-vdr = np.interp(time,vexp["time_h"],vexp["vol_mm3"]) # [mm^3]
+vdr = np.interp(np.linspace(0,vdr_tab.size-1,npt),
+                np.arange(vdr_tab.size), vdr_tab)
 
 # Volumetric thermal expansion coefficient of water from IAPWS-95 at 200 kPa
 # (a back pressure of 200 kPa only appears once in the caption of Figure 1)
@@ -210,16 +216,18 @@ bw = thexp.coef_w_IAPWS95_tab("dat_IAPWS95_200kPa_10-90-0.5degC", tempad)[1:-1]
 # Coupled drainage-expansion volume change of water [mm^3]
 # Equation (24) in Coulibaly et al., 2022
 dVw_dr = thexp.deltaVw_dr(bw, vdr, temp)
+# Relative error between coupled/uncoupled expressions
+relerr = (dVw_dr-vdr)/vi*1e2 # [%]
 
 # Plot results and export to comma-separated tables
 plt.figure(3)
-plt.plot(temp, (dVw_dr-vdr)/vi*1e2, label="Ng et al., 2016")
+plt.plot(temp, relerr, label="Ng et al., 2016")
 plt.legend()
 
 np.savetxt("tab_integration_water_drainage_coupling_Ng2016.csv",
            np.concatenate((temp[:,np.newaxis],
                            dVw_dr[:,np.newaxis],
                            vdr[:,np.newaxis],
-                           (dVw_dr-vdr)[:,np.newaxis]/vi*1e2), axis=1),
+                           relerr[:,np.newaxis]), axis=1),
            header=("temp_degC,dVw_dr_mm3,dVdr_mm3,(dVw_dr-dVdr)/Vi_pct"),
            delimiter=',')
