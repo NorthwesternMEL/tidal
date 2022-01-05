@@ -94,7 +94,7 @@ np.savetxt("tab_integration_solid_expansion.csv",
 # Add 1 increment of padding to the temperature for the IAPWS-95 so that thermal
 # expansion is calculated with 2nd order central differences at first/last value
 tempad = np.concatenate([[2*temp[0]-temp[1]],temp,[2*temp[-1]-temp[-2]]])
-bw = thexp.coef_w_IAPWS95_tab("dat_IAPWS95_1atm_10-90-0.5degC", tempad)[1:-1]
+bw = thexp.coef_w_IAPWS95_tab("dat_IAPWS95_1atm_10-90-0.5degC", tempad)[0][1:-1]
 
 # Relative volume change, use unit initial volume (vwi = 1) to make relative
 # Exact integration, equation (21) in Coulibaly et al., 2022
@@ -134,9 +134,9 @@ np.savetxt("tab_integration_water_expansion.csv",
 t = np.array([25, 35, 45, 55], dtype=float) # Temperature [degC]
 vme = np.array([0.000, 0.430, 1.020, 1.740]) # Expelled volume [cm^3]
 vde = np.array([0.000, 0.090, 0.070, 0.040]) # Volume calibration (vcal) [cm^3]
-# Volume of expelled water [mm^3]. Neglect density ratio, equation () of
+# Volume of expelled water [mm^3]. Neglect density ratio, equation (8) of
 # Coulibaly and Rotta Loria 2022
-vdr_tab = (vme - vde)*1e3 # [mm^3]
+vdr_tab = thexp.deltaVdr(vme, vde)*1e3 # [mm^3]
 # Initial volume (Fig. 7: vsi = 732.4 cm^3, vwi = 272.4 cm^3, vi = 1004.8 cm^3)
 vi = 1004.8e3 # [mm^3]
 
@@ -153,7 +153,8 @@ vdr = np.interp(np.linspace(0,vdr_tab.size-1,npt),
 # Add 1 increment of padding to the temperature for the IAPWS-95 so that thermal
 # expansion is calculated with 2nd order central differences at first/last value
 tempad = np.concatenate([[2*temp[0]-temp[1]],temp,[2*temp[-1]-temp[-2]]])
-bw = thexp.coef_w_IAPWS95_tab("dat_IAPWS95_300kPa_10-90-0.5degC", tempad)[1:-1]
+bw = thexp.coef_w_IAPWS95_tab("dat_IAPWS95_300kPa_10-90-0.5degC",
+                              tempad)[0][1:-1]
 
 # Coupled drainage-expansion volume change of water [mm^3]
 # Equation (24) in Coulibaly et al., 2022
@@ -192,10 +193,9 @@ mut_v = np.array([0, 0.04, 0.088, 0.129, 0.225, 0.265, 0.31])
 # Initial volume vi = 85689 mm^3 back-calculated from Table 3
 # Calculations available in file `analysis_Ng_et_al_2016.py`
 vi = 85689 # [mm^3]
-# Volume of expelled water [mm^3]. Neglect density ratio, equation () of
+# Volume of expelled water [mm^3]. Neglect density ratio, equation (8) of
 # Coulibaly and Rotta Loria 2022
-vdr_tab = vme - vde - mut_v*vi*1e-2
-
+vdr_tab = thexp.deltaVdr(vme, vde + mut_v*vi*1e-2) # [mm^3]
 
 # Linear interpolation (non-monotonic)
 npt = 500 # Number of interpolation points
@@ -211,7 +211,8 @@ vdr = np.interp(np.linspace(0,vdr_tab.size-1,npt),
 # Add 1 increment of padding to the temperature for the IAPWS-95 so that thermal
 # expansion is calculated with 2nd order central differences at first/last value
 tempad = np.concatenate([[2*temp[0]-temp[1]],temp,[2*temp[-1]-temp[-2]]])
-bw = thexp.coef_w_IAPWS95_tab("dat_IAPWS95_200kPa_10-90-0.5degC", tempad)[1:-1]
+bw = thexp.coef_w_IAPWS95_tab("dat_IAPWS95_200kPa_10-90-0.5degC",
+                              tempad)[0][1:-1]
 
 # Coupled drainage-expansion volume change of water [mm^3]
 # Equation (24) in Coulibaly et al., 2022

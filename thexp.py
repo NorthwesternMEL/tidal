@@ -177,6 +177,7 @@ def coef_w_CRC40ed(t):
 #   t: temperature [degC], numpy array
 # Return value:
 #   volumetric thermal expansion coefficient of water [1/degC], numpy array
+#   density of water [kg/m^3], numpy array
 # ------------------------------------------------------------------------------
 def coef_w_IAPWS95_tab(ifile, t, ofile=None):
   data = np.genfromtxt(ifile, delimiter='\t', names=True)
@@ -203,7 +204,8 @@ def coef_w_IAPWS95_tab(ifile, t, ofile=None):
                fmt = ['%.2f', '%.3e'],
                header="temperature_degC,thermal_expansion_1perdegC",
                delimiter=",")
-  return np.interp(t,data["Temperature_C"],thexp)
+  return (np.interp(t,data["Temperature_C"],thexp),
+          np.interp(t,data["Temperature_C"],data["Density_kgm3"]))
 
 # ------------------------------------------------------------------------------
 # Computes and returns best-fit polynomial for the volumetric thermal expansion
@@ -331,6 +333,29 @@ def deltaVw_dr(bw, vdr, t):
   return expintat*integrate.cumtrapz(expintatinv,vdr,initial=0)
 
 # ------------------------------------------------------------------------------
+# Computes and returns the volume of expelled water using exact integration
+# accounting for the density ratio (mass balance), or, using simple difference
+# (volume balance) according to equations (25) and (8) of Coulibaly and Rotta
+# Loria, 2022, respectively. When computing exact integration, additional
+# arguments are required. When computing the volume difference, only the
+# measured volume and volume correction should be specified.
+# Arguments:
+#   vme: measured volume change of water [mm^3]
+#   vcal: correction for the volume of expelled water [mm^3], numpy array
+#   f: integration formula, string {'exact'}
+#   rho: density of water [kg/m3], numpy array, dtype=float
+#   rho0: density of water at room temperature T0 [kg/m3], float
+# Return value:
+#   Volume of water expelled out of the sample [mm^3], numpy array
+# ------------------------------------------------------------------------------
+def deltaVdr(vme, vcal, f=None, rho=None, rho0=None):
+  vdr = vme - vcal # Simple difference (volume balance)
+  if (f == 'exact'):
+    # Exact integration with mass balance
+    vdr = rho0*integrate.cumtrapz(1.0/rho, vdr, initial=0)
+  return vdr
+
+# ------------------------------------------------------------------------------
 # Computes and returns the volume correction for the calibration tests using
 # a porous dummy sample, according to equations () and () of Coulibaly and
 # Rotta Loria, 2022, respectively. Thermal expansion computed using the small
@@ -345,6 +370,7 @@ def deltaVw_dr(bw, vdr, t):
 #   time series of the correction volume [mm^3], numpy array
 # ------------------------------------------------------------------------------
 def vcal_por(vme, vwi, bw, bm, t, f):
+  ## FUNCTION TO BE WRITTEN
   return deltaVw(vwi, bm - bw, -vme, t, f)
 
 # ------------------------------------------------------------------------------
@@ -353,7 +379,7 @@ def vcal_por(vme, vwi, bw, bm, t, f):
 # returns variance on the thermally induced volumetric strain
 # Dictionary indexing variables according to the following fixed naming:
 # Initial volume of the sample: "vi"
-# Measured (not corrected) volume of expelled water: "vme"
+# Measured (not corrected) volume change of water: "vme"
 # Correction for the volume of expelled water: "vcal"
 # Initial mass of solid grains: "ms"
 # Initial density of solid grains: "rhosi"
@@ -365,7 +391,7 @@ def vcal_por(vme, vwi, bw, bm, t, f):
 #
 # Arguments:
 #   dic: dictionary mapping variables to list index
-#   val: values of the variables, list of scalars/numpy arrays
+#   val: average values of the variables, list of scalars/numpy arrays
 #   std: standard deviation of the variables, list of scalars/numpy arrays
 # Return value:
 #   list[0]: standard deviation of the thermally induced volumetric strain
