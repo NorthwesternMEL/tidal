@@ -33,8 +33,14 @@ See the README file in the top-level TIDAL directory.
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
 import thexp
+import rdNg2016
+import rdLiu2018
+import matplotlib.pyplot as plt
+# import os
+# os.path.dirname(rdNg2016.__file__) # gives empty path
+# os.path.abspath(rdNg2016.__file__) # gives module file full path
+# os.path.dirname(os.path.abspath(rdNg2016.__file__))
 
 # Temperature range for the calculation [25 - 55] degC
 ti = 25 # Initial temperature [degC]
@@ -125,110 +131,89 @@ np.savetxt("tab_integration_water_expansion.csv",
            delimiter=',')
 
 # ------------------------------------------------------------------------------
-# [3] Coupling between expelled water and thermal expansion
+# [3] Volume of expelled water and drainage - expansion coupling
 # ------------------------------------------------------------------------------
 
-### (1) Expelled water volume data from Liu et al., 2018, test at p' = 50 kPa
+for (ref, dat, vu, fnameIAPWS95) in zip(['Ng2016', 'Liu2018'],
+                                        [rdNg2016, rdLiu2018],
+                                        ['mm3', 'cm3'],
+                                        ["dat_IAPWS95_200kPa_10-90-0.5degC",
+                                         "dat_IAPWS95_300kPa_10-90-0.5degC"]):
+  # (1) Expelled water volume data from Ng et al., 2016, test D70S200TC
+  # (2) Expelled water volume data from Liu et al., 2018, test at p' = 50 kPa
+  t = dat.temp # Temperature [degC]
+  dvme = dat.dvme # Measured water volume [mm3/cm3]
+  dvcal = dat.dvcal # Volume correction [mm3/cm3]
+  vi = dat.vi # Initial volume [mm3/cm3]
 
-# Temperature and expelled water time series interpolated from Table 3
-t = np.array([25, 35, 45, 55], dtype=float) # Temperature [degC]
-vme = np.array([0.000, 0.430, 1.020, 1.740]) # Expelled volume [cm^3]
-vde = np.array([0.000, 0.090, 0.070, 0.040]) # Volume calibration (vcal) [cm^3]
-# Volume of expelled water [mm^3]. Neglect density ratio, equation (8) of
-# Coulibaly and Rotta Loria 2022
-vdr_tab = thexp.deltaVdr(vme, vde)*1e3 # [mm^3]
-# Initial volume (Fig. 7: vsi = 732.4 cm^3, vwi = 272.4 cm^3, vi = 1004.8 cm^3)
-vi = 1004.8e3 # [mm^3]
+  # Linear interpolation (non-monotonic)
+  npt = 500 # Number of interpolation points
+  temp = np.interp(np.linspace(0,t.size-1,npt), np.arange(t.size), t)
+  dvme_interp = np.interp(np.linspace(0,dvme.size-1,npt),
+                         np.arange(dvme.size), dvme)
+  dvcal_interp = np.interp(np.linspace(0,dvcal.size-1,npt),
+                           np.arange(dvcal.size), dvcal)
 
-# Linear interpolation (non-monotonic)
-npt = 500 # Number of interpolation points
-# Temperature (interpolated)
-temp = np.interp(np.linspace(0,t.size-1,npt),
-                 np.arange(t.size), t)
-# Volume of water expelled (interpolated)
-vdr = np.interp(np.linspace(0,vdr_tab.size-1,npt),
-                np.arange(vdr_tab.size), vdr_tab)
+  # Volumetric thermal expansion coefficient of water from IAPWS-95 at 300 kPa
+  # Add padding using linear extrapolation of temperature so thermal expansion
+  # is calculated with 2nd order central differences at first/last value
+  tempad = np.concatenate([[2*temp[0]-temp[1]],temp,[2*temp[-1]-temp[-2]]])
+  bw, rhow = thexp.coef_w_IAPWS95_tab(fnameIAPWS95, tempad)
+  bw = bw[1:-1]
+  rhow = rhow[1:-1] # Density of water
+  rhow0 = rhow[0] # Density of water at room temperature T0 assuming T0=Ti
 
-# Volumetric thermal expansion coefficient of water from IAPWS-95 at 300 kPa
-# Add 1 increment of padding to the temperature for the IAPWS-95 so that thermal
-# expansion is calculated with 2nd order central differences at first/last value
-tempad = np.concatenate([[2*temp[0]-temp[1]],temp,[2*temp[-1]-temp[-2]]])
-bw = thexp.coef_w_IAPWS95_tab("dat_IAPWS95_300kPa_10-90-0.5degC",
-                              tempad)[0][1:-1]
+  # Volume of expelled water [mm3]. Equation (8) and (24) of Coulibaly and
+  # Rotta Loria 2022
+  # Neglect density ratio
+  dvdr_vc = thexp.deltaVdr(dvme_interp, dvcal_interp, 'vc')
+  # Exact integration
+  dvdr_mc = thexp.deltaVdr(dvme_interp, dvcal_interp, 'mc', rhow, rhow0)
+  # Relative error between volume/mass conservation expressions [%]
+  errvdr = (dvdr_mc - dvdr_vc)/vi*1e2
 
-# Coupled drainage-expansion volume change of water [mm^3]
-# Equation (24) in Coulibaly et al., 2022
-dVw_dr = thexp.deltaVw_dr(bw, vdr, temp)
-# Relative error between coupled/uncoupled expressions
-relerr = (dVw_dr-vdr)/vi*1e2 # [%]
+  # Coupled drainage-expansion volume change of water [mm^3]
+  # Coupled term (25) always obtained using Vdr with density ratio from (24)
+  dvw_dr = thexp.deltaVw_dr(bw, dvdr_mc, temp) # With Vdr from Equation (24)
+  # Relative error between coupled/uncoupled expressions [%]
+  # Uncoupled term obtained using either (24), to isolate effects of coupling
+  # or using (8) to highlight the effects of both density ratio and coupling in
+  # comparison to usual method, i.e. equation (8) and vdw_dr = vdr (uncoupled)
+  errvwdrvc = (dvw_dr - dvdr_vc)/vi*1e2 # Decoupled Vdr from Equation (8)
+  errvwdrmc = (dvw_dr - dvdr_mc)/vi*1e2 # Decoupled Vdr from Equation (24)
 
-# Plot results and export to comma-separated tables
-plt.figure(3)
-plt.plot(temp, relerr, label="Liu et al., 2018")
-plt.xlabel(r'Temperature $T$ [degC]')
-plt.ylabel('Relative difference between coupled/uncoupled drainage-expansion '+
-           r'$\Delta V_w^{dr}/V_i$ [%]')
-plt.title("Figure 4 of Coulibaly and Rotta Loria 2022")
-plt.legend()
+  # Plot results and export to comma-separated tables
+  plt.figure(3)
+  plt.plot(temp, errvdr, label=ref)
+  plt.xlabel(r'Temperature $T$ [degC]')
+  plt.ylabel('Relative error on mass/volume conservation equation '+
+             r'$(\Delta V_{dr}^{mc}-\Delta V_{dr}^{vc})/V_i$ [%]')
+  plt.title("Figure 6a of Coulibaly and Rotta Loria 2022")
+  plt.legend()
 
-np.savetxt("tab_integration_water_drainage_coupling_Liu2018.csv",
-           np.concatenate((temp[:,np.newaxis],
-                           dVw_dr[:,np.newaxis],
-                           vdr[:,np.newaxis],
-                           relerr[:,np.newaxis]), axis=1),
-           header=("temp_degC,dVw_dr_mm3,dVdr_mm3,(dVw_dr-dVdr)/Vi_pct"),
-           delimiter=',')
+  plt.figure(4)
+  plt.plot(temp, errvwdrvc, label=ref+" (decoupled Vdr from (8))")
+  plt.plot(temp, errvwdrmc, label=ref+" (decoupled Vdr from (24))")
+  plt.xlabel(r'Temperature $T$ [degC]')
+  plt.ylabel('Relative difference between coupled/uncoupled drainage-expansion'+
+             r' $\Delta V_w^{dr}/V_i$ [%]')
+  plt.title("Figure 6b of Coulibaly and Rotta Loria 2022")
+  plt.legend()
 
-### (2) Expelled water volume data from Ng et al., 2016, test D70S200TC
+  np.savetxt("tab_integration_water_expelled_and_coupling_"+ref+".csv",
+             np.concatenate((temp[:,np.newaxis],
+                             dvdr_vc[:,np.newaxis],
+                             dvdr_mc[:,np.newaxis],
+                             errvdr[:,np.newaxis],
+                             dvw_dr[:,np.newaxis],
+                             errvwdrvc[:,np.newaxis],
+                             errvwdrmc[:,np.newaxis]), axis=1),
+             header=("temp_degC,dVdr_vc_"+vu+",dVdr_mc_"+vu+
+                     ",(dVdr_mc-dVdr_vc)/Vi_pct,dVw_dr_"+vu+
+                     ",(dVw_dr-dVdr_vc)/Vi_pct,(dVw_dr-dVdr_mc)/Vi_pct"),
+             delimiter=',')
 
-# Temperature and expelled water time series interpolated from Table 3
-# Temperature [degC]
-t = np.array([23, 30, 40, 50, 40, 30, 23], dtype=float)
-# Volume change measured by PVC [mm^3]
-vme = np.array([0, 132, 337, 527, 464, 342, 291], dtype=float)
-# Volume calibration (vde) [mm^3]
-vde = np.array([0, 15, 41, 76, 55, 25, 7], dtype=float)
-# Leaked volume / total volume (mu*t/vi) [%]
-mut_v = np.array([0, 0.04, 0.088, 0.129, 0.225, 0.265, 0.31])
-# Initial volume vi = 85689 mm^3 back-calculated from Table 3
-# Calculations available in file `analysis_Ng_et_al_2016.py`
-vi = 85689 # [mm^3]
-# Volume of expelled water [mm^3]. Neglect density ratio, equation (8) of
-# Coulibaly and Rotta Loria 2022
-vdr_tab = thexp.deltaVdr(vme, vde + mut_v*vi*1e-2) # [mm^3]
-
-# Linear interpolation (non-monotonic)
-npt = 500 # Number of interpolation points
-# Temperature (interpolated)
-temp = np.interp(np.linspace(0,t.size-1,npt),
-                 np.arange(t.size), t)
-# Volume of water expelled (interpolated)
-vdr = np.interp(np.linspace(0,vdr_tab.size-1,npt),
-                np.arange(vdr_tab.size), vdr_tab)
-
-# Volumetric thermal expansion coefficient of water from IAPWS-95 at 200 kPa
-# (a back pressure of 200 kPa only appears once in the caption of Figure 1)
-# Add 1 increment of padding to the temperature for the IAPWS-95 so that thermal
-# expansion is calculated with 2nd order central differences at first/last value
-tempad = np.concatenate([[2*temp[0]-temp[1]],temp,[2*temp[-1]-temp[-2]]])
-bw = thexp.coef_w_IAPWS95_tab("dat_IAPWS95_200kPa_10-90-0.5degC",
-                              tempad)[0][1:-1]
-
-# Coupled drainage-expansion volume change of water [mm^3]
-# Equation (24) in Coulibaly et al., 2022
-dVw_dr = thexp.deltaVw_dr(bw, vdr, temp)
-# Relative error between coupled/uncoupled expressions
-relerr = (dVw_dr-vdr)/vi*1e2 # [%]
-
-# Plot results and export to comma-separated tables
-plt.figure(3)
-plt.plot(temp, relerr, label="Ng et al., 2016")
-plt.legend()
-
-np.savetxt("tab_integration_water_drainage_coupling_Ng2016.csv",
-           np.concatenate((temp[:,np.newaxis],
-                           dVw_dr[:,np.newaxis],
-                           vdr[:,np.newaxis],
-                           relerr[:,np.newaxis]), axis=1),
-           header=("temp_degC,dVw_dr_mm3,dVdr_mm3,(dVw_dr-dVdr)/Vi_pct"),
-           delimiter=',')
+# ------------------------------------------------------------------------------
+# [4] Effect of density ratio in calculation of volume of expelled water
+# porous dummy simplifications
+# ------------------------------------------------------------------------------

@@ -15,8 +15,17 @@ GNU General Public License for more details.
 
 *Python module that performs all necessary computations for thermally induced deformation calculations in triaxial conditions
 
-Many of the information and code is written for readability and tracktability to iriginal content rather than for performance.
-Although optimization could be possible, it was decided against due to the low computational burden of the involved calculations
+Most of the information and code is written for readability and tracktability
+to the original content rather than for performance. Although optimization
+could be possible, it is decided against due to the low computational burden
+of the involved calculations. Some example analysis files are loosely integrated
+and may possess some level of code repetition which  provides transparency and
+readability.
+
+For new analysis based on comprehensive raw data, no such
+separation occurs and the entire proper analysis can be conducted following the
+template file
+
 
 
 * Citation
