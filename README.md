@@ -1,4 +1,4 @@
-* This is the Thermally Induced Deformation Analysis Library (TIDAL) package
+* This is the Thermally Induced Deformation Analysis Library (TIDAL)
 
 Copyright (C) 2021 Mechanics and Energly Laboratory, Northwestern University
 
@@ -27,6 +27,9 @@ separation occurs and the entire proper analysis can be conducted following the
 template file
 
 
+* Folder structure:
+data: contains the raw data used in calculations
+analysis: contains the analysis files used in Coulibaly and Rotta Loria, 2022
 
 * Citation
 When using this package, please cite:

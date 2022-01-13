@@ -404,9 +404,9 @@ def resid_sol_por(vme_sol, vme_por, vwi, bw, bm, t, f, rho=None, rho0=None):
 
 # ------------------------------------------------------------------------------
 # Computes the propagation of uncertainty on the volumetric strain formula
-# Returns variance factors for all input variables
+# Returns error factors for all input variables
 # returns variance on the thermally induced volumetric strain
-# Dictionary indexing variables according to the following fixed naming:
+# Lists indexing variables according to the following fixed naming:
 # Initial volume of the sample: "vi"
 # Measured (not corrected) volume change of water: "vme"
 # Correction for the volume of expelled water: "vcal"
@@ -417,34 +417,32 @@ def resid_sol_por(vme_sol, vme_por, vwi, bw, bm, t, f, rho=None, rho0=None):
 # Temperature: "t"
 # Units and dimensions must be consistent between all input variables
 #
-#
 # Arguments:
-#   dic: dictionary mapping variables to list index
-#   val: average values of the variables, list of scalars/numpy arrays
+#   mean: mean values of the variables, list of scalars/numpy arrays
 #   std: standard deviation of the variables, list of scalars/numpy arrays
 # Return value:
-#   list[0]: standard deviation of the thermally induced volumetric strain
-#   list[1]: list of variance factors with same indexing as input dictionary
+#   list of error factors ordered with the reference indexing
+#   standard deviation of the thermally induced volumetric strain
 # ------------------------------------------------------------------------------
-def propagUQ(dic, val, std):
-  ### Unpack variables
-  vi = val[dic["vi"]]
-  vme = np.copy(val[dic["vme"]]) # Copy for potential modification to avoid
-  vcal = np.copy(val[dic["vcal"]]) # division by zero in the cov calculation
-  ms = val[dic["ms"]]
-  rhosi = val[dic["rhosi"]]
-  bs = val[dic["bs"]]
-  bw = val[dic["bw"]]
-  t = val[dic["t"]]
-  # Unpack standard deviations
-  s_vi = std[dic["vi"]]
-  s_vme = std[dic["vme"]]
-  s_vcal = std[dic["vcal"]]
-  s_ms = std[dic["ms"]]
-  s_rhosi = std[dic["rhosi"]]
-  s_bs = std[dic["bs"]]
-  s_bw = std[dic["bw"]]
-  s_t = std[dic["t"]]
+def propagUQ(mean, std):
+  ### Unpack variables (for clarity)
+  vi = mean[0]
+  vme = np.copy(mean[1]) # Copy for potential modification to avoid
+  vcal = np.copy(mean[2]) # division by zero in the cov calculation
+  ms = mean[3]
+  rhosi = mean[4]
+  bs = mean[5]
+  bw = mean[6]
+  t = mean[7]
+  # Unpack standard deviations (for clarity)
+  s_vi = std[0]
+  s_vme = std[1]
+  s_vcal = std[2]
+  s_ms = std[3]
+  s_rhosi = std[4]
+  s_bs = std[5]
+  s_bw = std[6]
+  s_t = std[7]
 
   ### Useful quantities
   vsi = ms/rhosi # Initial volume of solid
@@ -456,42 +454,41 @@ def propagUQ(dic, val, std):
   int_bw = deltaVth(1.0, bw, t, 'small') # Water (decoupled formula)
 
   ### Factors that multiply squared coefficient of variation of each variables
-  f = [None]*len(dic)
+  f = [None]*len(mean)
   # Total volume. Equation (26) of Coulibaly and Rotta Loria, 2022
-  f[dic["vi"]] = ((vme - vcal)/vi)**2 + (pfi*int_bs)**2 + (pfi*int_bw)**2
+  f[0] = ((vme - vcal)/vi)**2 + (pfi*int_bs)**2 + (pfi*int_bw)**2
   # Measured expelled volume. Equation (27) of Coulibaly and Rotta Loria, 2022
-  f[dic["vme"]] = (vme/vi)**2
+  f[1] = (vme/vi)**2
   # Volume correction. Equation (28) of Coulibaly and Rotta Loria, 2022
-  f[dic["vcal"]] = (vcal/vi)**2
+  f[2] = (vcal/vi)**2
   # Solid mass. Equation (29) of Coulibaly and Rotta Loria, 2022
-  f[dic["ms"]] = (pfi*int_bs)**2 + (pfi*int_bw)**2
+  f[3] = (pfi*int_bs)**2 + (pfi*int_bw)**2
   # Solid density. Equation (29) of Coulibaly and Rotta Loria, 2022
-  f[dic["rhosi"]] = (pfi*int_bs)**2 + (pfi*int_bw)**2 # Identical to ms
+  f[4] = (pfi*int_bs)**2 + (pfi*int_bw)**2 # Identical to ms
   # Thermal expansion of solid. Equation (30) of Coulibaly and Rotta Loria, 2022
-  f[dic["bs"]] = (pfi*bs*delt)**2
+  f[5] = (pfi*bs*delt)**2
   # Thermal expansion of water. Equation (31) of Coulibaly and Rotta Loria, 2022
-  f[dic["bw"]] = (ni*bw*delt)**2
+  f[6] = (ni*bw*delt)**2
   # Temperature. Equation (32) of Coulibaly and Rotta Loria, 2022
-  f[dic["t"]] = (pfi*bs*delt)**2 + (ni*bw*delt)**2
+  f[7] = (pfi*bs*delt)**2 + (ni*bw*delt)**2
 
   # Compute coefficients of variations
   cov_vi = s_vi/vi
-  cov_ms = s_ms/ms
-  cov_rhosi = s_rhosi/rhosi
-  cov_bs = s_bs/bs
-  cov_bw = s_bw/bw
-  cov_t = s_t/t
   # Avoid division by zero for measured and corrected volumes
   # Zero volume are changed to infinite so that division in COV is zero
   vme[np.logical_and(vme<=0, vme>=0)] = np.inf
   vcal[np.logical_and(vcal<=0, vcal>=0)] = np.inf
   cov_vme = s_vme/vme
   cov_vcal = s_vcal/vcal
+  cov_ms = s_ms/ms
+  cov_rhosi = s_rhosi/rhosi
+  cov_bs = s_bs/bs
+  cov_bw = s_bw/bw
+  cov_t = s_t/t
 
-  s_ev = np.sqrt(f[dic["vi"]]*cov_vi**2 + f[dic["ms"]]*cov_ms**2 +
-                 f[dic["rhosi"]]*cov_rhosi**2 + f[dic["bs"]]*cov_bs**2 +
-                 f[dic["bw"]]*cov_bw**2 + f[dic["t"]]*cov_t**2 +
-                 f[dic["vme"]]*cov_vme**2 + f[dic["vcal"]]*cov_vcal**2)
+  s_ev = np.sqrt(f[0]*cov_vi**2 + f[1]*cov_vme**2 + f[2]*cov_vcal**2 +
+                 f[3]*cov_ms**2 + f[4]*cov_rhosi**2 + f[5]*cov_bs**2 +
+                 f[6]*cov_bw**2 + f[7]*cov_t**2)
 
-  return [s_ev,f]
+  return f, s_ev
 
