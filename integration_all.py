@@ -1,6 +1,7 @@
 """
 Comparison of integration formulas for the thermal expansion of solid grains and
-water. Provides data for Figure 3 of Coulibaly and Rotta Loria 2022
+water, and for conservation equations. Provides data for section 3.4 (Figures 5
+and 6) of Coulibaly and Rotta Loria 2022
 
 Python 2
 Scipy version 1.2.1
@@ -38,6 +39,7 @@ import rdNg2016
 import rdLiu2018
 import matplotlib.pyplot as plt
 # import os
+# after importing the modules, you can look where they are. the main module tidal must be in the PYTHONPATH !
 # os.path.dirname(rdNg2016.__file__) # gives empty path
 # os.path.abspath(rdNg2016.__file__) # gives module file full path
 # os.path.dirname(os.path.abspath(rdNg2016.__file__))
@@ -60,32 +62,32 @@ bs_kos = thexp.coef_s_Kosinski91(temp, 5) # 5th order value used
 
 # Relative volume change, use unit initial volume (vsi = 1) to make relative
 # Exact integration, equation (20) in Coulibaly et al., 2022
-dVs_kos_exact = thexp.deltaVth(1.0, bs_kos, temp, 'exact')*1e2
+dvs_kos_exact = thexp.deltaVth(1.0, bs_kos, temp, 'exact')*1e2
 # Small expansion integration, equation (22) in Coulibaly et al., 2022
-dVs_kos_small = thexp.deltaVth(1.0, bs_kos, temp, 'small')*1e2
+dvs_kos_small = thexp.deltaVth(1.0, bs_kos, temp, 'small')*1e2
 # Linear formula, equation (11) in Coulibaly et al., 2022
-dVs_kos_lin = thexp.deltaVth(1.0, bs_kos, temp, 'linear')*1e2
-dVs_lo_lin = thexp.deltaVth(1.0, bs_lo, temp, 'linear')*1e2
-dVs_hi_lin = thexp.deltaVth(1.0, bs_hi, temp, 'linear')*1e2
+dvs_kos_lin = thexp.deltaVth(1.0, bs_kos, temp, 'linear')*1e2
+dvs_lo_lin = thexp.deltaVth(1.0, bs_lo, temp, 'linear')*1e2
+dvs_hi_lin = thexp.deltaVth(1.0, bs_hi, temp, 'linear')*1e2
 
 # Plot results and export to comma-separated tables
 plt.figure(1)
-plt.plot(temp, dVs_kos_exact, label=r"Exact (Kosinski et al., 1991)")
-plt.plot(temp, dVs_kos_small, label=r"Small (Kosinski et al., 1991)")
-plt.plot(temp, dVs_kos_lin, label=r"Linear (Kosinski et al., 1991)")
-plt.plot(temp, dVs_lo_lin, label=r"Linear ($\beta_s=$"+str(bs_lo)+" 1/degC)")
-plt.plot(temp, dVs_hi_lin, label=r"Linear ($\beta_s=$"+str(bs_hi)+" 1/degC)")
+plt.plot(temp, dvs_kos_exact, label=r"Exact (Kosinski et al., 1991)")
+plt.plot(temp, dvs_kos_small, label=r"Small (Kosinski et al., 1991)")
+plt.plot(temp, dvs_kos_lin, label=r"Linear (Kosinski et al., 1991)")
+plt.plot(temp, dvs_lo_lin, label=r"Linear ($\beta_s=$"+str(bs_lo)+" 1/degC)")
+plt.plot(temp, dvs_hi_lin, label=r"Linear ($\beta_s=$"+str(bs_hi)+" 1/degC)")
 plt.xlabel(r'Temperature $T$ [degC]')
 plt.ylabel(r'Thermal expansion of solid grains $\Delta V_s^{th}/V_{s,i}$ [%]')
 plt.title("Figure 3 of Coulibaly and Rotta Loria 2022")
 plt.legend()
 
 np.savetxt("tab_integration_solid_expansion.csv",
-           np.concatenate((temp[:,np.newaxis], dVs_kos_exact[:,np.newaxis],
-                           dVs_kos_small[:,np.newaxis],
-                           dVs_kos_lin[:,np.newaxis],
-                           dVs_lo_lin[:,np.newaxis],
-                           dVs_hi_lin[:,np.newaxis]), axis=1),
+           np.concatenate((temp[:,np.newaxis], dvs_kos_exact[:,np.newaxis],
+                           dvs_kos_small[:,np.newaxis],
+                           dvs_kos_lin[:,np.newaxis],
+                           dvs_lo_lin[:,np.newaxis],
+                           dvs_hi_lin[:,np.newaxis]), axis=1),
            header=("temp_degC,dVs_Vsi_kos91_exact_pct,dVs_Vsi_kos91_small_pct,"+
                    "dVs_Vsi_kos91_linear_pct,dVs_Vsi_bs=3e-5_lin_pct,"+
                    "dVs_Vsi_bs=3.5e-5_lin_pct"),
@@ -100,21 +102,24 @@ np.savetxt("tab_integration_solid_expansion.csv",
 # Add 1 increment of padding to the temperature for the IAPWS-95 so that thermal
 # expansion is calculated with 2nd order central differences at first/last value
 tempad = np.concatenate([[2*temp[0]-temp[1]],temp,[2*temp[-1]-temp[-2]]])
-bw = thexp.coef_w_IAPWS95_tab("dat_IAPWS95_1atm_10-90-0.5degC", tempad)[0][1:-1]
+bw, rhow = thexp.coef_w_IAPWS95_tab("dat_IAPWS95_1atm_10-90-0.5degC", tempad)
+bw = bw[1:-1]
+rhow = rhow[1:-1] # Density of water
+rhow0 = rhow[0] # Density of water at room temperature T0 assuming T0=Ti
 
 # Relative volume change, use unit initial volume (vwi = 1) to make relative
 # Exact integration, equation (21) in Coulibaly et al., 2022
-dVwth_exact = thexp.deltaVth(1.0, bw, temp, 'exact')*1e2
+dvwth_exact = thexp.deltaVth(1.0, bw, temp, 'exact')*1e2
 # Small expansion integration, equation (23) in Coulibaly et al., 2022
-dVwth_small = thexp.deltaVth(1.0, bw, temp, 'small')*1e2
+dvwth_small = thexp.deltaVth(1.0, bw, temp, 'small')*1e2
 # Linear formula, equation (12) in Coulibaly et al., 2022
-dVwth_lin = thexp.deltaVth(1.0, bw, temp, 'linear')*1e2
+dvwth_lin = thexp.deltaVth(1.0, bw, temp, 'linear')*1e2
 
 # Plot results and export to comma-separated tables
 plt.figure(2)
-plt.plot(temp, dVwth_exact, label=r"Exact (IAPWS-95)")
-plt.plot(temp, dVwth_small, label=r"Small (IAPWS-95)")
-plt.plot(temp, dVwth_lin, label=r"Linear (IAPWS-95)")
+plt.plot(temp, dvwth_exact, label=r"Exact (IAPWS-95)")
+plt.plot(temp, dvwth_small, label=r"Small (IAPWS-95)")
+plt.plot(temp, dvwth_lin, label=r"Linear (IAPWS-95)")
 plt.xlabel(r'Temperature $T$ [degC]')
 plt.ylabel('Thermal expansion of initial water volume '+
            r'$\Delta V_w^{th}/V_{w,i}$ [%]')
@@ -123,15 +128,37 @@ plt.legend()
 
 np.savetxt("tab_integration_water_expansion.csv",
            np.concatenate((temp[:,np.newaxis],
-                           dVwth_exact[:,np.newaxis],
-                           dVwth_small[:,np.newaxis],
-                           dVwth_lin[:,np.newaxis]), axis=1),
+                           dvwth_exact[:,np.newaxis],
+                           dvwth_small[:,np.newaxis],
+                           dvwth_lin[:,np.newaxis]), axis=1),
            header=("temp_degC,dVwth_Vwi_exact_pct,dVwth_Vwi_small_pct,"+
                    "dVwth_Vwi_lin_pct"),
            delimiter=',')
 
 # ------------------------------------------------------------------------------
-# [3] Volume of expelled water and drainage - expansion coupling
+# [3] Volume correction for porous dummy sample
+# ------------------------------------------------------------------------------
+
+bm = 3e-5*np.ones(temp.size) # Get realistic value from some material, e.g., stainless steel
+# Volume correction for porous dummy sample [mm3]. Use vme_por = 0, and unit
+# initial volume (vwi = 1) to make relative
+# Exact integration, equation (26) in Coulibaly et al., 2022
+dvcal_exact = thexp.deltaVcal_por(0.0, 1.0, bw, bm, temp, 'exact', rhow, rhow0)
+# Simple integration, equation (27) in Coulibaly et al., 2022
+dvcal_simple = thexp.deltaVcal_por(0.0, 1.0, bw, bm, temp, 'simple')
+errdvcal = (dvcal_exact - dvcal_simple)*1e2
+
+plt.figure(10)
+plt.plot(temp, errdvcal)
+plt.xlabel(r'Temperature $T$ [degC]')
+plt.ylabel('Relative error on porous dummy volume correction '+
+           r'$(\Delta V_{cal}^{exact} - \Delta V_{cal}^{simple})/V_{w,i}$ [%]')
+plt.title("Figure 4a of Coulibaly and Rotta Loria 2022")
+plt.legend()
+
+
+# ------------------------------------------------------------------------------
+# [4] Volume of expelled water and drainage - expansion coupling
 # ------------------------------------------------------------------------------
 
 for (ref, dat, vu, fnameIAPWS95) in zip(['Ng2016', 'Liu2018'],
@@ -154,7 +181,7 @@ for (ref, dat, vu, fnameIAPWS95) in zip(['Ng2016', 'Liu2018'],
   dvcal_interp = np.interp(np.linspace(0,dvcal.size-1,npt),
                            np.arange(dvcal.size), dvcal)
 
-  # Volumetric thermal expansion coefficient of water from IAPWS-95 at 300 kPa
+  # Volumetric thermal expansion coefficient of water from IAPWS-95
   # Add padding using linear extrapolation of temperature so thermal expansion
   # is calculated with 2nd order central differences at first/last value
   tempad = np.concatenate([[2*temp[0]-temp[1]],temp,[2*temp[-1]-temp[-2]]])
@@ -213,7 +240,5 @@ for (ref, dat, vu, fnameIAPWS95) in zip(['Ng2016', 'Liu2018'],
                      ",(dVw_dr-dVdr_vc)/Vi_pct,(dVw_dr-dVdr_mc)/Vi_pct"),
              delimiter=',')
 
-# ------------------------------------------------------------------------------
-# [4] Effect of density ratio in calculation of volume of expelled water
-# porous dummy simplifications
-# ------------------------------------------------------------------------------
+
+
