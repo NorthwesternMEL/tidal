@@ -498,15 +498,14 @@ def propagUQ(mean, std):
 # defined as a standalone function here to provide standardized and centralized
 # procedures and avoid possible mistakes
 # Arguments:
-#   s_viprep: standard deviation of the sample volume after preparation
-#   s_vc: standard deviation of the volume change during consolidation
-#   s_mu: standard deviation of the flowrate of leakage during consolidation
-#   tc: duration of the consolidation
+#   s_viprep: standard deviation of sample volume after preparation
+#   s_vmec: standard deviation of measured volume change during consolidation
+#   s_vmuc: standard deviation of leakage volume change during consolidation
 # Return value:
 #   standard deviation of the initial sample volume before thermal loading
 # ------------------------------------------------------------------------------
-def std_vi(s_viprep, s_vc, s_mu, tc):
-  return np.sqrt(s_viprep**2 + s_vc**2 + (s_mu*tc)**2)
+def std_vi(s_viprep, s_vmec, s_vmuc):
+  return np.sqrt(s_viprep**2 + s_vmec**2 + s_vmuc**2)
 
 # ------------------------------------------------------------------------------
 # Computes the standard deviation of the initial volume of solid grains. This is

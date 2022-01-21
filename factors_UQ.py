@@ -83,7 +83,7 @@ for i, (ref, dat, fname) in enumerate(zip(['Ng2016', 'Liu2018'],
          temp] # Temperature varation [degC]
   # Unknown standard deviation for the tests replicated: set all to zero
   # Use dedicated functions for vi, vsi and dt for illustration purposes
-  std = [thexp.std_vi(0.0, 0.0, 0.0, 0.0),
+  std = [thexp.std_vi(0.0, 0.0, 0.0),
          0.0,
          0.0,
          thexp.std_vsi(1.0, 1.0, 0.0, 0.0), # ms=rhosi=1 to avoid division by 0
