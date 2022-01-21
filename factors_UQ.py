@@ -77,13 +77,19 @@ for i, (ref, dat, fname) in enumerate(zip(['Ng2016', 'Liu2018'],
   val = [dat.vi, # Initial volume [mm3/cm3]
          dvme, # Measured water volume [mm3/cm3]
          dvcal, # Volume correction [mm3/cm3]
-         dat.ms, # Mass of solid grains [g]
-         dat.rhosi, # Initial density of the solid grains [g/mm3]
+         dat.vsi, # Initial volume of the solid grains [mm3/cm3]
          bs, # Thermal expansion coefficient of solid grains [1/degC]
          bw, # Thermal expansion coefficient of water [1/degC]
-         temp] # Temperature [degC]
-  # Unknown standard deviation for the tests replicated
-  std = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+         temp] # Temperature varation [degC]
+  # Unknown standard deviation for the tests replicated: set all to zero
+  # Use dedicated functions for vi, vsi and dt for illustration purposes
+  std = [thexp.std_vi(0.0, 0.0, 0.0, 0.0),
+         0.0,
+         0.0,
+         thexp.std_vsi(1.0, 1.0, 0.0, 0.0), # ms=rhosi=1 to avoid division by 0
+         0.0,
+         0.0,
+         thexp.std_dt(0.0)]
 
   # Compute factors only (unknown standard deviations)
   f = thexp.propagUQ(val, std)[0]
@@ -92,10 +98,10 @@ for i, (ref, dat, fname) in enumerate(zip(['Ng2016', 'Liu2018'],
   plt.plot(temp, f[0], label='factor V, '+ref)
   plt.plot(temp, f[1], label='factor Vme, '+ref)
   plt.plot(temp, f[2], label='factor Vcal, '+ref)
-  plt.plot(temp, f[3], label='factor ms and rhosi, '+ref)
-  plt.plot(temp, f[5], label='factor bs, '+ref)
-  plt.plot(temp, f[6], label='factor bw, '+ref)
-  plt.plot(temp, f[7], label='factor T, '+ref)
+  plt.plot(temp, f[3], label='factor Vsi, '+ref)
+  plt.plot(temp, f[4], label='factor bs, '+ref)
+  plt.plot(temp, f[5], label='factor bw, '+ref)
+  plt.plot(temp, f[6], label='factor dT, '+ref)
   plt.xlabel(' Temperature [degC]')
   plt.ylabel('Error factors [-]')
   plt.title("Figure 7"+chr(97+i)+" of Coulibaly and Rotta Loria 2022")
@@ -104,7 +110,7 @@ for i, (ref, dat, fname) in enumerate(zip(['Ng2016', 'Liu2018'],
   np.savetxt("tab_factors_UQ_"+ref+".csv",
              np.concatenate((temp[:,np.newaxis], f[0][:,np.newaxis],
                              f[1][:,np.newaxis], f[2][:,np.newaxis],
-                             f[3][:,np.newaxis], f[5][:,np.newaxis],
-                             f[6][:,np.newaxis], f[7][:,np.newaxis]), axis=1),
-             header=("temp_degC,F_Vi,F_Vme,F_Vcal,F_ms_rhos,F_bs,F_bw,F_temp"),
+                             f[3][:,np.newaxis], f[4][:,np.newaxis],
+                             f[5][:,np.newaxis], f[6][:,np.newaxis]), axis=1),
+             header=("temp_degC,F_Vi,F_Vme,F_Vcal,F_Vsi,F_bs,F_bw,F_temp"),
              delimiter=',')

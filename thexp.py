@@ -406,20 +406,25 @@ def resid_sol_por(vme_sol, vme_por, vwi, bw, bm, t, f, rho=None, rho0=None):
 # Computes the propagation of uncertainty on the volumetric strain formula
 # Returns error factors for all input variables
 # returns variance on the thermally induced volumetric strain
-# Lists indexing variables according to the following fixed naming:
-# Initial volume of the sample: "vi"
-# Measured (not corrected) volume change of water: "vme"
-# Correction for the volume of expelled water: "vcal"
-# Initial mass of solid grains: "ms"
-# Initial density of solid grains: "rhosi"
-# Volumetric thermal expansion coefficient of solid grains: "bs"
-# Volumetric thermal expansion coefficient of water: "bw"
-# Temperature: "t"
+# Lists indexing variables according to the following fixed order:
+# [0] Initial volume of the sample: "vi"
+# [1] Measured (not corrected) volume change of water: "vme"
+# [2] Correction for the volume of expelled water: "vcal"
+# [3] Initial volume of solid grains: "vsi"
+# [4] Volumetric thermal expansion coefficient of solid grains: "bs"
+# [5] Volumetric thermal expansion coefficient of water: "bw"
+# [6] Temperature variation: "dt"
 # Units and dimensions must be consistent between all input variables
 #
 # Arguments:
-#   mean: mean values of the variables, list of scalars/numpy arrays
-#   std: standard deviation of the variables, list of scalars/numpy arrays
+#   mean: mean values of the variables, list of scalars/numpy arrays. Note: the
+#         input for the "dt" entry may either be the absolute temperature or the
+#         temperature variation since either choice does not alter the value of
+#         the integrals (simple translation variable)
+#   std: standard deviation of the variables, list of scalars/numpy arrays.
+#        Note: the input for the "dt" entry must be the standard deviation of
+#        the temperature variation, i.e. s_dt = sqrt(2)*s_t, with s_t the
+#        standard deviation of the temperature measurement
 # Return value:
 #   list of error factors ordered with the reference indexing
 #   standard deviation of the thermally induced volumetric strain
@@ -429,66 +434,106 @@ def propagUQ(mean, std):
   vi = mean[0]
   vme = np.copy(mean[1]) # Copy for potential modification to avoid
   vcal = np.copy(mean[2]) # division by zero in the cov calculation
-  ms = mean[3]
-  rhosi = mean[4]
-  bs = mean[5]
-  bw = mean[6]
-  t = mean[7]
+  vsi = mean[3]
+  bs = mean[4]
+  bw = mean[5]
+  t = mean[6] # Either absolute temperature or temperature variation
   # Unpack standard deviations (for clarity)
-  s_vi = std[0]
+  s_vi = std[0] # Must be determined from function `std_vi()`
   s_vme = std[1]
   s_vcal = std[2]
-  s_ms = std[3]
-  s_rhosi = std[4]
-  s_bs = std[5]
-  s_bw = std[6]
-  s_t = std[7]
+  s_vsi = std[3] # Must be determined from function `std_vsi()`
+  s_bs = std[4]
+  s_bw = std[5]
+  s_dt = std[6] # Must be determined from function `std_dt()`
 
   ### Useful quantities
-  vsi = ms/rhosi # Initial volume of solid
   ni = 1.0 - vsi/vi # Initial porosity
   pfi = 1.0 - ni # Initial packing fraction (complement to 1 of porosity)
   delt = t - t[0] # Temperature variation
   # Relative thermal expansion computed using the small variations assumption
-  int_bs = deltaVth(1.0, bs, t, 'small') # Solid grains
-  int_bw = deltaVth(1.0, bw, t, 'small') # Water (decoupled formula)
+  # Compute integral of the difference between coefficients of water and grains
+  int_bwbs = deltaVth(1.0, bw - bs, t, 'small')
 
   ### Factors that multiply squared coefficient of variation of each variables
   f = [None]*len(mean)
-  # Total volume. Equation (26) of Coulibaly and Rotta Loria, 2022
-  f[0] = ((vme - vcal)/vi)**2 + (pfi*int_bs)**2 + (pfi*int_bw)**2
-  # Measured expelled volume. Equation (27) of Coulibaly and Rotta Loria, 2022
+  # Total volume. Equation (34) of Coulibaly and Rotta Loria, 2022
+  f[0] = ((vme - vcal)/vi + pfi*int_bwbs)**2
+  # Measured expelled volume. Equation (35) of Coulibaly and Rotta Loria, 2022
   f[1] = (vme/vi)**2
-  # Volume correction. Equation (28) of Coulibaly and Rotta Loria, 2022
+  # Volume correction. Equation (36) of Coulibaly and Rotta Loria, 2022
   f[2] = (vcal/vi)**2
-  # Solid mass. Equation (29) of Coulibaly and Rotta Loria, 2022
-  f[3] = (pfi*int_bs)**2 + (pfi*int_bw)**2
-  # Solid density. Equation (29) of Coulibaly and Rotta Loria, 2022
-  f[4] = (pfi*int_bs)**2 + (pfi*int_bw)**2 # Identical to ms
-  # Thermal expansion of solid. Equation (30) of Coulibaly and Rotta Loria, 2022
-  f[5] = (pfi*bs*delt)**2
-  # Thermal expansion of water. Equation (31) of Coulibaly and Rotta Loria, 2022
-  f[6] = (ni*bw*delt)**2
-  # Temperature. Equation (32) of Coulibaly and Rotta Loria, 2022
-  f[7] = (pfi*bs*delt)**2 + (ni*bw*delt)**2
+  # Volume of solid grains. Equation (37) of Coulibaly and Rotta Loria, 2022
+  f[3] = (pfi*int_bwbs)**2
+  # Thermal expansion of solid. Equation (38) of Coulibaly and Rotta Loria, 2022
+  f[4] = (pfi*bs*delt)**2
+  # Thermal expansion of water. Equation (39) of Coulibaly and Rotta Loria, 2022
+  f[5] = (ni*bw*delt)**2
+  # Temperature variation. Equation (40) of Coulibaly and Rotta Loria, 2022
+  f[6] = (pfi*bs*delt + ni*bw*delt)**2
 
   # Compute coefficients of variations
-  cov_vi = s_vi/vi
-  # Avoid division by zero for measured and corrected volumes
+  # Avoid division by zero for volumes and temperature variation
   # Zero volume are changed to infinite so that division in COV is zero
   vme[np.logical_and(vme<=0, vme>=0)] = np.inf
   vcal[np.logical_and(vcal<=0, vcal>=0)] = np.inf
+  delt[np.logical_and(delt<=0, delt>=0)] = np.inf
+  cov_vi = s_vi/vi
   cov_vme = s_vme/vme
   cov_vcal = s_vcal/vcal
-  cov_ms = s_ms/ms
-  cov_rhosi = s_rhosi/rhosi
+  cov_vsi = s_vsi/vsi
   cov_bs = s_bs/bs
   cov_bw = s_bw/bw
-  cov_t = s_t/t
+  cov_dt = s_dt/delt
 
   s_ev = np.sqrt(f[0]*cov_vi**2 + f[1]*cov_vme**2 + f[2]*cov_vcal**2 +
-                 f[3]*cov_ms**2 + f[4]*cov_rhosi**2 + f[5]*cov_bs**2 +
-                 f[6]*cov_bw**2 + f[7]*cov_t**2)
+                 f[3]*cov_vsi**2 + f[4]*cov_bs**2 + f[5]*cov_bw**2 +
+                 f[6]*cov_dt**2)
 
   return f, s_ev
 
+# ------------------------------------------------------------------------------
+# Computes the standard deviation of the initial volume of the sample. This is a
+# simple calculation that could be implemented directly by the users. It is
+# defined as a standalone function here to provide standardized and centralized
+# procedures and avoid possible mistakes
+# Arguments:
+#   s_viprep: standard deviation of the sample volume after preparation
+#   s_vc: standard deviation of the volume change during consolidation
+#   s_mu: standard deviation of the flowrate of leakage during consolidation
+#   tc: duration of the consolidation
+# Return value:
+#   standard deviation of the initial sample volume before thermal loading
+# ------------------------------------------------------------------------------
+def std_vi(s_viprep, s_vc, s_mu, tc):
+  return np.sqrt(s_viprep**2 + s_vc**2 + (s_mu*tc)**2)
+
+# ------------------------------------------------------------------------------
+# Computes the standard deviation of the initial volume of solid grains. This is
+# a simple calculation that could be implemented directly by the users. It is
+# defined as a standalone function here to provide standardized and centralized
+# procedures and avoid possible mistakes
+# Arguments:
+#   ms: initial mass of solid grains
+#   rhosi: initial density of solid grains
+#   s_ms: standard deviation of the initial mass of solid grains
+#   s_rhosi: standard deviation of the initial density of solid grains
+# Return value:
+#   standard deviation of the initial volume of solid grains
+# ------------------------------------------------------------------------------
+def std_vsi(ms, rhosi, s_ms, s_rhosi):
+  return np.sqrt((s_ms/rhosi)**2 + (s_rhosi/ms)**2)
+
+# ------------------------------------------------------------------------------
+# Computes the standard deviation of the temperature *variation* from the
+# standard deviation of the temperature measurement. This is a very simple
+# calculation that could be implemented directly by the users. It is defined as
+# a standalone function here to provide standardized and centralized procedures
+# and avoid possible mistakes
+# Arguments:
+#   s_t: standard deviation of the temperature measurement
+# Return value:
+#   standard deviation of the temperature variation
+# ------------------------------------------------------------------------------
+def std_dt(s_t):
+  return np.sqrt(2)*s_t
