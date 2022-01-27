@@ -359,21 +359,21 @@ def deltaVw_dr(f, x, vdr, t=None):
 # difference (volume conservation) according to equations (25) and (8) of
 # Coulibaly and Rotta Loria, 2022, respectively. When computing exact
 # integration, additional density arguments are required. When computing the
-# volume difference, only the measured volume, volume correction and integration
-# flag should be specified.
+# volume difference, only the integration flag, measured volume and volume
+# correction should be specified.
 # Arguments:
+#   f: integration formula, string {'vc', 'mc'}
 #   vme: measured volume change of water [mm3]
 #   vcal: correction for the volume of expelled water [mm^3], numpy array
-#   f: integration formula, string {'vc', 'mc'}
 #   rho: density of water [kg/m3], numpy array, dtype=float
 #   rho0: density of water at room temperature T0 [kg/m3], float
 # Return value:
 #   Volume of water expelled out of the sample [mm3], numpy array
 # ------------------------------------------------------------------------------
-def deltaVdr(vme, vcal, f, rho=None, rho0=None):
-  vdr = vme - vcal # Simple difference (volume conservation, default for 'vc')
+def deltaVdr(f, vme, vcal, rho=None, rho0=None):
+  vdr = vme - vcal # Simple difference (volume conservation), default for 'vc'
   if (f == 'mc'):
-    # Exact integration with mass conservation
+    # Exact integration (mass conservation)
     vdr = rho0*integrate.cumtrapz(1.0/rho, vdr, initial=0)
   return vdr
 
@@ -383,18 +383,18 @@ def deltaVdr(vme, vcal, f, rho=None, rho0=None):
 # Rotta Loria, 2022, respectively. When computing exact integration, additional
 # density arguments are required.
 # Arguments:
+#   f: integration formula, string {'exact', 'simple'}
 #   vme_por: measured water volume for calibration test on porous dummy [mm^3]
 #   vwi: initial volume of water inside the sample [mm^3]
 #   bw: volumetric thermal expansion coefficient of water [1/degC], numpy array
 #   bm: volumetric thermal expansion coefficient of dummy [1/degC], numpy array
 #   t: temperature [degC], numpy array, dtype=float
-#   f: integration formula, string {'exact', 'simple'}
 #   rho: density of water [kg/m3], numpy array, dtype=float
 #   rho0: density of water at room temperature T0 [kg/m3], float
 # Return value:
 #   Volume correction for calibration test on porous dummy [mm^3], numpy array
 # ------------------------------------------------------------------------------
-def deltaVcal_por(vme_por, vwi, bw, bm, t, f, rho=None, rho0=None):
+def deltaVcal_por(f, vme_por, vwi, bw, bm, t, rho=None, rho0=None):
   if (f == 'exact'):
     vw = vwi*np.exp(integrate.cumtrapz(bm, t, initial=0))
     vcal = vme_por - integrate.cumtrapz(rho*vw*(bw - bm), t, initial=0)/rho0
@@ -408,20 +408,20 @@ def deltaVcal_por(vme_por, vwi, bw, bm, t, f, rho=None, rho0=None):
 # equations (28) and (29) of Coulibaly and Rotta Loria, 2022, respectively.
 # When computing exact integration, additional density arguments are required.
 # Arguments:
+#   f: integration formula, string {'exact', 'simple'}
 #   vme_sol: measured water volume for calibration test on solid dummy [mm^3]
 #   vme_por: measured water volume for calibration test on porous dummy [mm^3]
 #   vwi: initial volume of water inside the sample [mm^3]
 #   bw: volumetric thermal expansion coefficient of water [1/degC], numpy array
 #   bm: volumetric thermal expansion coefficient of dummy [1/degC], numpy array
 #   t: temperature [degC], numpy array, dtype=float
-#   f: integration formula, string {'exact', 'simple'}
 #   rho: density of water [kg/m3], numpy array, dtype=float
 #   rho0: density of water at room temperature T0 [kg/m3], float
 # Return value:
 #   Residual volume change [mm^3], numpy array
 # ------------------------------------------------------------------------------
-def resid_sol_por(vme_sol, vme_por, vwi, bw, bm, t, f, rho=None, rho0=None):
-  return vme_sol - deltaVcal_por(vme_por, vwi, bw, bm, t, f, rho, rho0)
+def resid_sol_por(f, vme_sol, vme_por, vwi, bw, bm, t, rho=None, rho0=None):
+  return vme_sol - deltaVcal_por(f, vme_por, vwi, bw, bm, t, rho, rho0)
 
 # ------------------------------------------------------------------------------
 # Computes the propagation of uncertainty on the volumetric strain formula
@@ -478,7 +478,7 @@ def propagUQ(mean, std, m, c=0.95):
   delt = t - t[0] # Temperature variation
   # Relative thermal expansion computed using the small variations assumption
   # Compute integral of the difference between coefficients of water and grains
-  int_bwbs = deltaVth(1.0, bw - bs, t, 'small')
+  int_bwbs = deltaVth('small', 1.0, bw - bs, t)
 
   ### Factors that multiply squared coefficient of variation of each variables
   f = [None]*len(mean)

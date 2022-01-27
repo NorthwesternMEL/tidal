@@ -144,9 +144,9 @@ bm = 3e-5*np.ones(temp.size) # Get realistic value from some material, e.g., sta
 # Volume correction for porous dummy sample [mm3]. Use vme_por = 0, and unit
 # initial volume (vwi = 1) to make relative
 # Exact integration, equation (26) in Coulibaly et al., 2022
-dvcal_exact = thexp.deltaVcal_por(0.0, 1.0, bw, bm, temp, 'exact', rhow, rhow0)
+dvcal_exact = thexp.deltaVcal_por('exact', 0.0, 1.0, bw, bm, temp, rhow, rhow0)
 # Simple integration, equation (27) in Coulibaly et al., 2022
-dvcal_simple = thexp.deltaVcal_por(0.0, 1.0, bw, bm, temp, 'simple')
+dvcal_simple = thexp.deltaVcal_por('simple', 0.0, 1.0, bw, bm, temp)
 errdvcal = (dvcal_exact - dvcal_simple)*1e2
 
 plt.figure(10)
@@ -194,9 +194,9 @@ for (ref, dat, vu, fnameIAPWS95) in zip(['Ng2016', 'Liu2018'],
   # Volume of expelled water [mm3]. Equation (8) and (24) of Coulibaly and
   # Rotta Loria 2022
   # Neglect density ratio
-  dvdr_vc = thexp.deltaVdr(dvme_interp, dvcal_interp, 'vc')
+  dvdr_vc = thexp.deltaVdr('vc', dvme_interp, dvcal_interp)
   # Exact integration
-  dvdr_mc = thexp.deltaVdr(dvme_interp, dvcal_interp, 'mc', rhow, rhow0)
+  dvdr_mc = thexp.deltaVdr('mc', dvme_interp, dvcal_interp, rhow, rhow0)
   # Relative error between volume/mass conservation expressions [%]
   errvdr = (dvdr_mc - dvdr_vc)/vi*1e2
 
