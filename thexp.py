@@ -32,6 +32,7 @@ See the README file in the top-level TIDAL directory.
 
 import numpy as np
 import scipy.integrate as integrate
+from scipy.stats import t as studt
 
 # Utility functions for temperature conversion
 FIVENINTH = 5./9
@@ -425,11 +426,15 @@ def resid_sol_por(vme_sol, vme_por, vwi, bw, bm, t, f, rho=None, rho0=None):
 #        Note: the input for the "dt" entry must be the standard deviation of
 #        the temperature variation, i.e. s_dt = sqrt(2)*s_t, with s_t the
 #        standard deviation of the temperature measurement
+#   m: number of tests performed
+#   c: confidence level [-], default 95%
 # Return value:
 #   list of error factors ordered with the reference indexing
-#   standard deviation of the thermally induced volumetric strain
+#   variance of the thermally induced volumetric strain
+#   critical value of Student's t-distribution
+#   Half with of the confidence interval
 # ------------------------------------------------------------------------------
-def propagUQ(mean, std):
+def propagUQ(mean, std, m, c=0.95):
   ### Unpack variables (for clarity)
   vi = mean[0]
   vme = np.copy(mean[1]) # Copy for potential modification to avoid
@@ -486,11 +491,11 @@ def propagUQ(mean, std):
   cov_bw = s_bw/bw
   cov_dt = s_dt/delt
 
-  s_ev = np.sqrt(f[0]*cov_vi**2 + f[1]*cov_vme**2 + f[2]*cov_vcal**2 +
-                 f[3]*cov_vsi**2 + f[4]*cov_bs**2 + f[5]*cov_bw**2 +
-                 f[6]*cov_dt**2)
+  v_ev = (f[0]*cov_vi**2 + f[1]*cov_vme**2 + f[2]*cov_vcal**2 +
+          f[3]*cov_vsi**2 + f[4]*cov_bs**2 + f[5]*cov_bw**2 + f[6]*cov_dt**2)
 
-  return f, s_ev
+  tstar = studt.ppf(.5*(1+c),5*(m-1)) # Safe for m=1, returns nan
+  return f, v_ev, tstar, tstar*np.sqrt(v_ev/m)
 
 # ------------------------------------------------------------------------------
 # Computes the standard deviation of the initial volume of the sample. This is a

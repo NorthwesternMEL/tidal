@@ -91,8 +91,8 @@ for i, (ref, dat, fname) in enumerate(zip(['Ng2016', 'Liu2018'],
          0.0,
          thexp.std_dt(0.0)]
 
-  # Compute factors only (unknown standard deviations)
-  f = thexp.propagUQ(val, std)[0]
+  # Compute factors only (unknown standard deviations, single test)
+  f = thexp.propagUQ(val, std, 1)[0]
 
   plt.figure(i)
   plt.plot(temp, f[0], label='factor V, '+ref)
