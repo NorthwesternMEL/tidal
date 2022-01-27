@@ -62,13 +62,13 @@ bs_kos = thexp.coef_s_Kosinski91(temp, 5) # 5th order value used
 
 # Relative volume change, use unit initial volume (vsi = 1) to make relative
 # Exact integration, equation (20) in Coulibaly et al., 2022
-dvs_kos_exact = thexp.deltaVth(1.0, bs_kos, temp, 'exact')*1e2
+dvs_kos_exact = thexp.deltaVth('beta', 1.0, bs_kos, temp)*1e2
 # Small expansion integration, equation (22) in Coulibaly et al., 2022
-dvs_kos_small = thexp.deltaVth(1.0, bs_kos, temp, 'small')*1e2
+dvs_kos_small = thexp.deltaVth('small', 1.0, bs_kos, temp)*1e2
 # Linear formula, equation (11) in Coulibaly et al., 2022
-dvs_kos_lin = thexp.deltaVth(1.0, bs_kos, temp, 'linear')*1e2
-dvs_lo_lin = thexp.deltaVth(1.0, bs_lo, temp, 'linear')*1e2
-dvs_hi_lin = thexp.deltaVth(1.0, bs_hi, temp, 'linear')*1e2
+dvs_kos_lin = thexp.deltaVth('linear', 1.0, bs_kos, temp)*1e2
+dvs_lo_lin = thexp.deltaVth('linear', 1.0, bs_lo, temp)*1e2
+dvs_hi_lin = thexp.deltaVth('linear', 1.0, bs_hi, temp)*1e2
 
 # Plot results and export to comma-separated tables
 plt.figure(1)
@@ -109,11 +109,12 @@ rhow0 = rhow[0] # Density of water at room temperature T0 assuming T0=Ti
 
 # Relative volume change, use unit initial volume (vwi = 1) to make relative
 # Exact integration, equation (21) in Coulibaly et al., 2022
-dvwth_exact = thexp.deltaVth(1.0, bw, temp, 'exact')*1e2
+dvwth_exact = thexp.deltaVth('beta', 1.0, bw, temp)*1e2
+#           = thexp.deltaVth('rho', 1.0, rhow)*1e2 # Alternative using density
 # Small expansion integration, equation (23) in Coulibaly et al., 2022
-dvwth_small = thexp.deltaVth(1.0, bw, temp, 'small')*1e2
+dvwth_small = thexp.deltaVth('small', 1.0, bw, temp)*1e2
 # Linear formula, equation (12) in Coulibaly et al., 2022
-dvwth_lin = thexp.deltaVth(1.0, bw, temp, 'linear')*1e2
+dvwth_lin = thexp.deltaVth('linear', 1.0, bw, temp)*1e2
 
 # Plot results and export to comma-separated tables
 plt.figure(2)
@@ -136,7 +137,7 @@ np.savetxt("tab_integration_water_expansion.csv",
            delimiter=',')
 
 # ------------------------------------------------------------------------------
-# [3] Volume correction for porous dummy sample
+# [3] Volume correction for porous dummy sample: TO BE COMPLETED !!!
 # ------------------------------------------------------------------------------
 
 bm = 3e-5*np.ones(temp.size) # Get realistic value from some material, e.g., stainless steel
@@ -199,9 +200,10 @@ for (ref, dat, vu, fnameIAPWS95) in zip(['Ng2016', 'Liu2018'],
   # Relative error between volume/mass conservation expressions [%]
   errvdr = (dvdr_mc - dvdr_vc)/vi*1e2
 
-  # Coupled drainage-expansion volume change of water [mm^3]
+  # Coupled drainage-expansion volume change of water [mm3]
   # Coupled term (25) always obtained using Vdr with density ratio from (24)
-  dvw_dr = thexp.deltaVw_dr(bw, dvdr_mc, temp) # With Vdr from Equation (24)
+  dvw_dr = thexp.deltaVw_dr('beta', bw, dvdr_mc, temp) # Vdr from Equation (24)
+  #      = thexp.deltaVw_dr('rho', rhow, dvdr_mc) # Alternative using density
   # Relative error between coupled/uncoupled expressions [%]
   # Uncoupled term obtained using either (24), to isolate effects of coupling
   # or using (8) to highlight the effects of both density ratio and coupling in

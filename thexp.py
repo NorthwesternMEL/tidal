@@ -290,48 +290,68 @@ def coef_s_Kosinski91(t, order):
 # ------------------------------------------------------------------------------
 # Computes and returns the variation of volume only due to thermal expansion
 # using exact integration, small values of the thermal expansion coefficient, or
-# linear formula according to equation (X), (Y), and (Z), respectively, of
-# Coulibaly and Rotta Loria, 2022. Function valid for water and solid grains
+# linear formula according to equation (21) to (24), (11) and (12) of Coulibaly
+# and Rotta Loria, 2022. Function valid for water and solid grains. Integration
+# is available using the density of the material (always exact integration when
+# using density). All integrations are available using the thermal expansion
+# coefficient, in this case, the additional temperature argument is required.
 # Arguments:
+#   f: integration formula, string {'rho','beta', 'small', 'linear'}
 #   vi: initial volume of solid grains / water inside the sample [mm^3]
-#   b: volumetric thermal expansion coefficient[1/degC], numpy array
+#   x: volumetric thermal expansion coefficient [1/degC], numpy array, or,
+#       density [kg/m3], numpy array
 #   t: temperature [degC], numpy array, dtype=float
-#   f: integration formula, string {'exact', 'const', 'small', 'linear'}
 # Return value:
 #   Volume variation of solid grains / water [mm^3], numpy array
 # ------------------------------------------------------------------------------
-def deltaVth(vi, b, t, f):
+def deltaVth(f, vi, x, t=None):
   delv = 0.0
-  if (f == 'exact'):
-    # Exact integration: equation (X) of Coulibaly and Rotta Loria, 2022
+  if (f == 'rho'):
+    # Exact integration: equations (21-22) of Coulibaly and Rotta Loria, 2022
+    # Volume variation given in terms of the density
+    delv = vi*(x[0]/x - 1.0)
+  elif (f == 'beta'):
+    # Exact integration: equations (21-22) of Coulibaly and Rotta Loria, 2022
     # $\Delta V = V_i[\exp(\int_{T_i}^T \alpha(T) dT) - 1]$
-    delv = vi*(np.exp(integrate.cumtrapz(b, t, initial=0)) - 1.0)
+    delv = vi*(np.exp(integrate.cumtrapz(x, t, initial=0)) - 1.0)
   elif (f == 'small'):
-    # Small expansion: equation (X2) of Coulibaly and Rotta Loria, 2022
+    # Small expansion: equation (23-24) of Coulibaly and Rotta Loria, 2022
     # $\Delta V = V_i \int_{T_i}^T \alpha(T) dT$
-    delv = vi*integrate.cumtrapz(b, t, initial=0)
+    delv = vi*integrate.cumtrapz(x, t, initial=0)
   elif (f == 'linear'):
-    # Linear formula: equation (Y) of Coulibaly and Rotta Loria, 2022
+    # Linear formula: equation (11-12) of Coulibaly and Rotta Loria, 2022
     # $\Delta V = V_i \alpha(T) \Delta T
-    delv = vi*b*(t-t[0])
+    delv = vi*x*(t-t[0])
   return delv
 
 # ------------------------------------------------------------------------------
 # Computes and returns the variation of water volume inside the sample due to
 # the coupled effects of expelled water and thermal expansion according to
-# equation (24) of Coulibaly and Rotta Loria, 2022.
+# equation (26) of Coulibaly and Rotta Loria, 2022. Integrations available using
+# the density, or, the volumetric thermal expansion coefficient of water. When
+# using the thermal expansion coefficient, the additional temperature argument
+# is required.
 # Arguments:
-#   bw: volumetric thermal expansion coefficient of water [1/degC], numpy array
-#   vdr: volume of water expelled from the sample [mm^3], numpy array
+#   f: integration formula, string {'rho', 'beta'}
+#   x: volumetric thermal expansion coefficient of water [1/degC], numpy array,
+#      or, density of water [kg/m3], numpy array
+#   vdr: volume of water expelled from the sample [mm3], numpy array
 #   t: temperature [degC], numpy array, dtype=float
 # Return value:
 #   Volume change of water due to coupled drainage-expansion [mm^3], numpy array
 # ------------------------------------------------------------------------------
-def deltaVw_dr(bw, vdr, t):
-  primbw = integrate.cumtrapz(bw, t, initial=0) # Primitive of thermal expansion
-  expp = np.exp(primbw)
-  exppinv = np.exp(-primbw)
-  return expp*integrate.cumtrapz(exppinv,vdr,initial=0)
+def deltaVw_dr(f, x, vdr, t=None):
+  delv = 0.0
+  if (f == 'rho'):
+    # Volume variation given in terms of the density
+    delv = integrate.cumtrapz(x, vdr, initial=0)/x
+  elif (f == 'beta'):
+    # Volume variation given in terms of thermal expansion coefficient
+    pbw = integrate.cumtrapz(x, t, initial=0) # Primitive of thermal expansion
+    expp = np.exp(pbw)
+    exppinv = np.exp(-pbw)
+    delv = expp*integrate.cumtrapz(exppinv,vdr,initial=0)
+  return delv
 
 # ------------------------------------------------------------------------------
 # Computes and returns the volume of expelled water using exact integration
@@ -342,13 +362,13 @@ def deltaVw_dr(bw, vdr, t):
 # volume difference, only the measured volume, volume correction and integration
 # flag should be specified.
 # Arguments:
-#   vme: measured volume change of water [mm^3]
+#   vme: measured volume change of water [mm3]
 #   vcal: correction for the volume of expelled water [mm^3], numpy array
 #   f: integration formula, string {'vc', 'mc'}
 #   rho: density of water [kg/m3], numpy array, dtype=float
 #   rho0: density of water at room temperature T0 [kg/m3], float
 # Return value:
-#   Volume of water expelled out of the sample [mm^3], numpy array
+#   Volume of water expelled out of the sample [mm3], numpy array
 # ------------------------------------------------------------------------------
 def deltaVdr(vme, vcal, f, rho=None, rho0=None):
   vdr = vme - vcal # Simple difference (volume conservation, default for 'vc')
@@ -385,7 +405,7 @@ def deltaVcal_por(vme_por, vwi, bw, bm, t, f, rho=None, rho0=None):
 # ------------------------------------------------------------------------------
 # Computes and returns the residual between calibration tests using a porous
 # dummy sample and calibration tests using a solid dummy sample according to
-#  equations (28) and (29) of Coulibaly and Rotta Loria, 2022, respectively.
+# equations (28) and (29) of Coulibaly and Rotta Loria, 2022, respectively.
 # When computing exact integration, additional density arguments are required.
 # Arguments:
 #   vme_sol: measured water volume for calibration test on solid dummy [mm^3]
