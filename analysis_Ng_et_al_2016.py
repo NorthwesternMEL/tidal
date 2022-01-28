@@ -14,6 +14,7 @@ Jibril B. Coulibaly, jibril.coulibaly at gmail.com
 
 SI units unless indicated otherwise
 No exceptions checked for invalid inputs. Users responsability
+The top-level TIDAL directory must be accessible to the PYTHONPATH
 
 Copyright (C) 2021 Mechanics and Energy Laboratory, Northwestern University
 
@@ -32,8 +33,9 @@ See the README file in the top-level TIDAL directory.
 
 import numpy as np
 import matplotlib.pyplot as plt
-import rdNg2016
-import thexp
+
+from tidal import thexp
+from tidal.data import rdNg2016
 
 # ------------------------------------------------------------------------------
 # General information and data recovered from the paper for test D70S200TC

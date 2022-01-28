@@ -17,6 +17,7 @@ Kelvin [K]
 Degrees Rankine [degR]
 
 No exceptions checked for invalid inputs. Users responsability
+The top-level TIDAL directory must be accessible to the PYTHONPATH
 
 Copyright (C) 2021 Mechanics and Energy Laboratory, Northwestern University
 
@@ -34,39 +35,40 @@ See the README file in the top-level TIDAL directory.
 """
 
 import numpy as np
-import thexp
-import rdNg2016
-import rdLiu2018
 import matplotlib.pyplot as plt
+
+from tidal import thexp
+from tidal import data
+from tidal.data import rdNg2016
+from tidal.data import rdLiu2018
+
 
 # ------------------------------------------------------------------------------
 # Determination of the error factors for the propagation of ucnertainty
 # ------------------------------------------------------------------------------
 
-fnamesIAPWS95 = ["dat_IAPWS95_200kPa_10-90-0.5degC",
-                 "dat_IAPWS95_300kPa_10-90-0.5degC"]
-
-for i, (ref, dat, fname) in enumerate(zip(['Ng2016', 'Liu2018'],
-                                              [rdNg2016, rdLiu2018],
-                                              fnamesIAPWS95)):
+for i, (ref, study, fname) in enumerate(zip(['Ng2016', 'Liu2018'],
+                                            [rdNg2016, rdLiu2018],
+                                            [data.path_IAPWS95_200kPa,
+                                             data.path_IAPWS95_300kPa])):
   # (1) Measurements data from Ng et al., 2016, test D70S200TC
   # (2) Measurements data from Liu et al., 2018, test at p' = 50 kPa
 
   # Linear interpolation (non-monotonic)
   npt = 500 # Number of interpolation points
   # Temperature [degC]
-  temp = np.interp(np.linspace(0,dat.temp.size-1,npt),
-                   np.arange(dat.temp.size), dat.temp)
+  temp = np.interp(np.linspace(0,study.temp.size-1,npt),
+                   np.arange(study.temp.size), study.temp)
   # Measured water volume [mm3/cm3]
-  dvme = np.interp(np.linspace(0,dat.dvme.size-1,npt),
-                   np.arange(dat.dvme.size), dat.dvme)
+  dvme = np.interp(np.linspace(0,study.dvme.size-1,npt),
+                   np.arange(study.dvme.size), study.dvme)
   # Volume correction [mm3/cm3]
-  dvcal = np.interp(np.linspace(0,dat.dvcal.size-1,npt),
-                   np.arange(dat.dvcal.size), dat.dvcal)
+  dvcal = np.interp(np.linspace(0,study.dvcal.size-1,npt),
+                   np.arange(study.dvcal.size), study.dvcal)
 
   # Volumetric thermal expansion coefficient of solid grains must be given as a
   # numpy array for integration
-  bs = dat.bs*np.ones(temp.size)
+  bs = study.bs*np.ones(temp.size)
   # Volumetric thermal expansion coefficient of water from IAPWS-95.
   # Add padding using linear extrapolation of temperature so thermal expansion
   # is calculated with 2nd order central differences at first/last value
@@ -74,10 +76,10 @@ for i, (ref, dat, fname) in enumerate(zip(['Ng2016', 'Liu2018'],
   bw = thexp.coef_w_IAPWS95_tab(fname, tempad)[0][1:-1]
 
   # Single test: mean value = test value
-  val = [dat.vi, # Initial volume [mm3/cm3]
+  val = [study.vi, # Initial volume [mm3/cm3]
          dvme, # Measured water volume [mm3/cm3]
          dvcal, # Volume correction [mm3/cm3]
-         dat.vsi, # Initial volume of the solid grains [mm3/cm3]
+         study.vsi, # Initial volume of the solid grains [mm3/cm3]
          bs, # Thermal expansion coefficient of solid grains [1/degC]
          bw, # Thermal expansion coefficient of water [1/degC]
          temp] # Temperature varation [degC]

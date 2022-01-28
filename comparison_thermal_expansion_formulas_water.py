@@ -17,6 +17,7 @@ Kelvin [K]
 Degrees Rankine [degR]
 
 No exceptions checked for invalid inputs. Users responsability
+The top-level TIDAL directory must be accessible to the PYTHONPATH
 
 Copyright (C) 2021 Mechanics and Energy Laboratory, Northwestern University
 
@@ -35,7 +36,9 @@ See the README file in the top-level TIDAL directory.
 
 import numpy as np
 import matplotlib.pyplot as plt
-import thexp
+
+from tidal import thexp
+from tidal import data
 
 # ------------------------------------------------------------------------------
 # Comparison of different formulas of the literature for the thermal expansion
@@ -57,8 +60,7 @@ bw_Baldi88 = thexp.coef_w_Baldi88(patm,temp) # Baldi et al., 1988
 bw_Cekerevac05 = thexp.coef_w_Cekerevac05(patm,temp) # Cekerevac et al., 2005
 bw_Smith54 = thexp.coef_w_Smith54(tcw, temp) # Smith et al., 2005
 bw_Chapman74 = thexp.coef_w_Chapman74(temp) # Chapman, 1974
-bw_IAPWS95 = thexp.coef_w_IAPWS95_tab("dat_IAPWS95_1atm_10-90-0.5degC",
-                                      tempad)[0][1:-1] # IAPWS-95
+bw_IAPWS95 = thexp.coef_w_IAPWS95_tab(data.path_IAPWS95_1atm, tempad)[0][1:-1]
 bw_CRC40ed = thexp.coef_w_CRC40ed(temp) # CRC Handbook 40th ed, 1958-1959
 
 # Plot results and export to comma-separated tables
@@ -101,10 +103,10 @@ bw_Baldi88_1000kPa = thexp.coef_w_Baldi88(1000e3,temp)
 
 # IAPWS-95: tabulated values
 bw_IAPWS95_p = [
-  thexp.coef_w_IAPWS95_tab("dat_IAPWS95_50kPa_10-90-0.5degC", tempad)[0][1:-1],
-  thexp.coef_w_IAPWS95_tab("dat_IAPWS95_200kPa_10-90-0.5degC", tempad)[0][1:-1],
-  thexp.coef_w_IAPWS95_tab("dat_IAPWS95_400kPa_10-90-0.5degC", tempad)[0][1:-1],
-  thexp.coef_w_IAPWS95_tab("dat_IAPWS95_1MPa_10-90-0.5degC", tempad)[0][1:-1]]
+  thexp.coef_w_IAPWS95_tab(data.path_IAPWS95_50kPa, tempad)[0][1:-1],
+  thexp.coef_w_IAPWS95_tab(data.path_IAPWS95_200kPa, tempad)[0][1:-1],
+  thexp.coef_w_IAPWS95_tab(data.path_IAPWS95_400kPa, tempad)[0][1:-1],
+  thexp.coef_w_IAPWS95_tab(data.path_IAPWS95_1MPa, tempad)[0][1:-1]]
   
 # IAPWS-95: 3rd degree polynomial fitting of the IAPWS-95 values. Temperature
 # range T=[20 ; 80] degC and pressure range p=[50 ; 1000] kPa.

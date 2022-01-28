@@ -17,6 +17,7 @@ Kelvin [K]
 Degrees Rankine [degR]
 
 No exceptions checked for invalid inputs. Users responsability
+The top-level TIDAL directory must be accessible to the PYTHONPATH
 
 Copyright (C) 2021 Mechanics and Energy Laboratory, Northwestern University
 
@@ -34,15 +35,22 @@ See the README file in the top-level TIDAL directory.
 """
 
 import numpy as np
-import thexp
-import rdNg2016
-import rdLiu2018
 import matplotlib.pyplot as plt
-# import os
+
+from tidal import thexp
+from tidal import data
+from tidal.data import rdNg2016
+from tidal.data import rdLiu2018
+
 # after importing the modules, you can look where they are. the main module tidal must be in the PYTHONPATH !
+# import inspect
+# import os
 # os.path.dirname(rdNg2016.__file__) # gives empty path
 # os.path.abspath(rdNg2016.__file__) # gives module file full path
 # os.path.dirname(os.path.abspath(rdNg2016.__file__))
+
+# tidalpath = os.path.normpath(os.path.dirname(inspect.getfile(thexp)))
+# datapath = os.path.normpath(tidalpath+"/data")
 
 # Temperature range for the calculation [25 - 55] degC
 ti = 25 # Initial temperature [degC]
@@ -102,7 +110,7 @@ np.savetxt("tab_integration_solid_expansion.csv",
 # Add 1 increment of padding to the temperature for the IAPWS-95 so that thermal
 # expansion is calculated with 2nd order central differences at first/last value
 tempad = np.concatenate([[2*temp[0]-temp[1]],temp,[2*temp[-1]-temp[-2]]])
-bw, rhow = thexp.coef_w_IAPWS95_tab("dat_IAPWS95_1atm_10-90-0.5degC", tempad)
+bw, rhow = thexp.coef_w_IAPWS95_tab(data.path_IAPWS95_1atm, tempad)
 bw = bw[1:-1]
 rhow = rhow[1:-1] # Density of water
 rhow0 = rhow[0] # Density of water at room temperature T0 assuming T0=Ti
@@ -162,17 +170,17 @@ plt.legend()
 # [4] Volume of expelled water and drainage - expansion coupling
 # ------------------------------------------------------------------------------
 
-for (ref, dat, vu, fnameIAPWS95) in zip(['Ng2016', 'Liu2018'],
-                                        [rdNg2016, rdLiu2018],
-                                        ['mm3', 'cm3'],
-                                        ["dat_IAPWS95_200kPa_10-90-0.5degC",
-                                         "dat_IAPWS95_300kPa_10-90-0.5degC"]):
+for (ref, study, vu, fnameIAPWS95) in zip(['Ng2016', 'Liu2018'],
+                                          [rdNg2016, rdLiu2018],
+                                          ['mm3', 'cm3'],
+                                          [data.path_IAPWS95_200kPa,
+                                           data.path_IAPWS95_200kPa]):
   # (1) Expelled water volume data from Ng et al., 2016, test D70S200TC
   # (2) Expelled water volume data from Liu et al., 2018, test at p' = 50 kPa
-  t = dat.temp # Temperature [degC]
-  dvme = dat.dvme # Measured water volume [mm3/cm3]
-  dvcal = dat.dvcal # Volume correction [mm3/cm3]
-  vi = dat.vi # Initial volume [mm3/cm3]
+  t = study.temp # Temperature [degC]
+  dvme = study.dvme # Measured water volume [mm3/cm3]
+  dvcal = study.dvcal # Volume correction [mm3/cm3]
+  vi = study.vi # Initial volume [mm3/cm3]
 
   # Linear interpolation (non-monotonic)
   npt = 500 # Number of interpolation points

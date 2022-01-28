@@ -14,6 +14,7 @@ Jibril B. Coulibaly, jibril.coulibaly at gmail.com
 
 SI units unless indicated otherwise
 No exceptions checked for invalid inputs. Users responsability
+The top-level TIDAL directory must be accessible to the PYTHONPATH
 
 Copyright (C) 2021 Mechanics and Energy Laboratory, Northwestern University
 
@@ -32,9 +33,9 @@ See the README file in the top-level TIDAL directory.
 
 import numpy as np
 import matplotlib.pyplot as plt
-import rdLiu2018
-import scipy.integrate as integrate
-import thexp
+
+from tidal import thexp
+from tidal.data import rdLiu2018
 
 # ------------------------------------------------------------------------------
 # General information and data recovered from the paper for test at p' = 50 kPa
@@ -144,44 +145,3 @@ np.savetxt("tab_verif_Liu2018_integration_water.csv",
 # The results are in better agreement with the formula of Baldi et al., 1988 !
 # It seems likely that Liu et al., 2018 actually used the formula of Baldi et
 # al., 1988 but mistakenly credited it to Campanella and Mitchell, 1968!
-
-# //////////////////////////////
-### EVERYTHING BELOW THIS LINE IS TEMPORARY MEMO TO BE DELETED LATER ###
-
-
-# Data digitized from Figure 7 and linearly interpolated from 0 to 9h
-ti = 0.
-tf = 9. # 9h total test
-nstep = (int)((tf-ti)*60) # 1 minute time steps
-time = np.linspace(ti, tf, nstep, dtype=float) # Time [h]
-
-# Temperature computed as the average of the outer and inner temperature
-temp_in = np.genfromtxt("Liu2018_temp_in.csv", delimiter=',', names=True)
-temp_out = np.genfromtxt("Liu2018_temp_out.csv", delimiter=',', names=True)
-temp_in_interp = np.interp(time,temp_in["time_h"],temp_in["temp_C"])
-temp_out_interp = np.interp(time,temp_out["time_h"],temp_out["temp_C"])
-temp = 0.5*(temp_in_interp + temp_out_interp) # Temperature of the sample [degC]
-
-# Volume of water expelled 
-vexp = np.genfromtxt("Liu2018_expelled_volume.csv", delimiter=',', names=True)
-vdr = np.interp(time,vexp["time_h"],vexp["vol_mm3"])
-
-# Thermal expansion coefficient of water from IAPWS-95 at 300 kPa
-alpha_w = thexp.w_IAPWS95("water_IAPWS95_300kPa_20-80-0.5degC", temp)
-
-
-
-# Exact integration, equation (15) in Coulibaly et al., 2022
-# TO CHANGE: $\Delta V / V_i = \exp(\int_{T_i}^{T_f} \alpha(T) dT) - 1$
-int_alphadt = integrate.cumtrapz(alpha_w, temp, initial=0) # \int \alpha(T) dT
-exp_int = np.exp(int_alphadt)
-exp_minus_int = np.exp(-int_alphadt)
-v_w_exact = exp_int*(v_w_i - integrate.cumtrapz(exp_minus_int, vdr, initial=0))
-# - Finite (forward) difference explicit integration to back-up exact formula
-v_w_fd = np.zeros(len(time))
-v_w_fd[0] = v_w_i
-for i in range(len(time)-1):
-  v_w_fd[i+1] = (v_w_fd[i] + 
-                 v_w_fd[i]*alpha_w[i]*(temp[i+1] - temp[i]) -
-                 (vdr[i+1] - vdr[i]))
-
