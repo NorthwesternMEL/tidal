@@ -34,7 +34,8 @@ See the README file in the top-level TIDAL directory.
 import numpy as np
 import matplotlib.pyplot as plt
 
-from tidal import thexp
+from tidal.core import thexp
+from tidal.core import inteq
 from tidal.data import rdLiu2018
 
 # ------------------------------------------------------------------------------
@@ -55,11 +56,11 @@ dvs = rdLiu2018.dvs # Volume change of solid grains [cm3]
 ### Verification 1: integration of the thermal expansion of solid grains
 bs = rdLiu2018.bs*np.ones(len(temp))
 # Exact integration, equation (20) in Coulibaly et al., 2022
-dvs_exact = thexp.deltaVth('beta', vsi, bs, temp)
+dvs_exact = inteq.deltaVth('beta', vsi, bs, temp)
 # Small thermal expansion integration, equation (22) in Coulibaly et al., 2022
-dvs_small = thexp.deltaVth('small', vsi, bs, temp)
+dvs_small = inteq.deltaVth('small', vsi, bs, temp)
 # Linear thermal expansion formula, equation (11) in Coulibaly et al., 2022
-dvs_lin = thexp.deltaVth('linear', vsi, bs, temp)
+dvs_lin = inteq.deltaVth('linear', vsi, bs, temp)
 
 plt.figure(1)
 plt.plot(temp, dvs, 'ko', label="Liu et al., 2018 (Table 3)")
@@ -92,13 +93,13 @@ np.savetxt("tab_verif_Liu2018_integration_solid.csv",
 # Liu et al., 2018
 
 # Different integrations of the thermal expansion of CRC 40th edition
-bw = thexp.coef_w_CRC40ed(temp) # CRC Handbook 40th ed, 1958
+bw = thexp.vcte_w_CRC40ed(temp) # CRC Handbook 40th ed, 1958
 # Exact integration, equation (21) in Coulibaly et al., 2022
-dvw_exact_CRC = thexp.deltaVth('beta', vwi, bw, temp)
+dvw_exact_CRC = inteq.deltaVth('beta', vwi, bw, temp)
 # Small thermal expansion integration, equation (23) in Coulibaly et al., 2022
-dvw_small_CRC = thexp.deltaVth('small', vwi, bw, temp)
+dvw_small_CRC = inteq.deltaVth('small', vwi, bw, temp)
 # Linear thermal expansion formula, equation (12) in Coulibaly et al., 2022
-dvw_lin_CRC = thexp.deltaVth('linear', vwi, bw, temp)
+dvw_lin_CRC = inteq.deltaVth('linear', vwi, bw, temp)
 
 plt.figure(2)
 plt.plot(temp, dvw, 'ko', label="Liu et al., 2018 (Table 3)")
@@ -114,13 +115,13 @@ plt.legend()
 # the thermal expansion coefficient of water from the CRC Handbook 40th edition
 # Let's try the formula of Baldi et al., 1988 for back pressure of 300 kPa
 u = rdLiu2018.u # Back pressure [Pa]
-bw = thexp.coef_w_Baldi88(u,temp) # Baldi et al., 1988
+bw = thexp.vcte_w_Baldi88(u,temp) # Baldi et al., 1988
 # Exact integration, equation (21) in Coulibaly et al., 2022
-dvw_exact_Baldi88 = thexp.deltaVth('beta', vwi, bw, temp)
+dvw_exact_Baldi88 = inteq.deltaVth('beta', vwi, bw, temp)
 # Small thermal expansion integration, equation (23) in Coulibaly et al., 2022
-dvw_small_Baldi88 = thexp.deltaVth('small', vwi, bw, temp)
+dvw_small_Baldi88 = inteq.deltaVth('small', vwi, bw, temp)
 # Linear thermal expansion formula, equation (12) in Coulibaly et al., 2022
-dvw_lin_Baldi88 = thexp.deltaVth('linear', vwi, bw, temp)
+dvw_lin_Baldi88 = inteq.deltaVth('linear', vwi, bw, temp)
 
 plt.figure(2)
 plt.plot(temp, dvw_exact_Baldi88, '--', label="Exact (Baldi et al., 300 kPa)")

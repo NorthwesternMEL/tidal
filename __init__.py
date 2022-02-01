@@ -32,3 +32,7 @@ GNU General Public License for more details.
 See the README file in the top-level TIDAL directory.
 UNDER CONSTRUCTION
 """
+
+from . import data
+from . import core
+from .core import * # All core function accessible from tidal namespace

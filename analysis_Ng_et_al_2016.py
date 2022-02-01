@@ -34,7 +34,8 @@ See the README file in the top-level TIDAL directory.
 import numpy as np
 import matplotlib.pyplot as plt
 
-from tidal import thexp
+from tidal.core import thexp
+from tidal.core import inteq
 from tidal.data import rdNg2016
 
 # ------------------------------------------------------------------------------
@@ -58,11 +59,11 @@ dvs_vi = rdNg2016.dvs_vi # Relative volume change of solid grains [%]
 ### Verification 1: integration of the thermal expansion of solid grains
 bs = rdNg2016.bs*np.ones(len(temp))
 # Exact integration, equation (20) in Coulibaly et al., 2022
-dvs_vi_exact = thexp.deltaVth('beta', pfi, bs, temp)*1e2
+dvs_vi_exact = inteq.deltaVth('beta', pfi, bs, temp)*1e2
 # Small thermal expansion integration, equation (22) in Coulibaly et al., 2022
-dvs_vi_small = thexp.deltaVth('small', pfi, bs, temp)*1e2
+dvs_vi_small = inteq.deltaVth('small', pfi, bs, temp)*1e2
 # Linear thermal expansion formula, equation (11) in Coulibaly et al., 2022
-dvs_vi_lin = thexp.deltaVth('linear', pfi, bs, temp)*1e2
+dvs_vi_lin = inteq.deltaVth('linear', pfi, bs, temp)*1e2
 
 plt.figure(1)
 plt.plot(temp, dvs_vi, 'ko', label=r"Ng et al., 2016 (Table 3)")
@@ -99,13 +100,13 @@ np.savetxt("tab_verif_Ng2016_integration_solid.csv",
 # Rotta Loria, 2022 to verify which one is actually used by Ng et al., 2016.
 
 u = rdNg2016.u # Back pressure [Pa]
-bw = thexp.coef_w_Baldi88(u,temp) # Baldi et al., 1988
+bw = thexp.vcte_w_Baldi88(u,temp) # Baldi et al., 1988
 # Exact integration, equation (21) in Coulibaly et al., 2022
-dvw_vi_exact = thexp.deltaVth('beta', ni, bw, temp)*1e2
+dvw_vi_exact = inteq.deltaVth('beta', ni, bw, temp)*1e2
 # Small thermal expansion integration, equation (23) in Coulibaly et al., 2022
-dvw_vi_small = thexp.deltaVth('small', ni, bw, temp)*1e2
+dvw_vi_small = inteq.deltaVth('small', ni, bw, temp)*1e2
 # Linear thermal expansion formula, equation (12) in Coulibaly et al., 2022
-dvw_vi_lin = thexp.deltaVth('linear', ni, bw, temp)*1e2
+dvw_vi_lin = inteq.deltaVth('linear', ni, bw, temp)*1e2
 
 plt.figure(2)
 plt.plot(temp, dvw_vi, 'ko', label=r"Ng et al., 2016 (Table 3)")

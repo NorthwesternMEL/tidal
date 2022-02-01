@@ -37,7 +37,8 @@ See the README file in the top-level TIDAL directory.
 import numpy as np
 import matplotlib.pyplot as plt
 
-from tidal import thexp
+from tidal.core import thexp
+from tidal.core import uq
 from tidal import data
 from tidal.data import rdNg2016
 from tidal.data import rdLiu2018
@@ -73,7 +74,7 @@ for i, (ref, study, fname) in enumerate(zip(['Ng2016', 'Liu2018'],
   # Add padding using linear extrapolation of temperature so thermal expansion
   # is calculated with 2nd order central differences at first/last value
   tempad = np.concatenate([[2*temp[0]-temp[1]],temp,[2*temp[-1]-temp[-2]]])
-  bw = thexp.coef_w_IAPWS95_tab(fname, tempad)[0][1:-1]
+  bw = thexp.vcte_w_IAPWS95_tab(fname, tempad)[0][1:-1]
 
   # Single test: mean value = test value
   val = [study.vi, # Initial volume [mm3/cm3]
@@ -85,16 +86,16 @@ for i, (ref, study, fname) in enumerate(zip(['Ng2016', 'Liu2018'],
          temp] # Temperature varation [degC]
   # Unknown standard deviation for the tests replicated: set all to zero
   # Use dedicated functions for vi, vsi and dt for illustration purposes
-  std = [thexp.std_vi(0.0, 0.0, 0.0),
+  std = [uq.std_vi(0.0, 0.0, 0.0),
          0.0,
          0.0,
-         thexp.std_vsi(1.0, 1.0, 0.0, 0.0), # ms=rhosi=1 to avoid division by 0
+         uq.std_vsi(1.0, 1.0, 0.0, 0.0), # ms=rhosi=1 to avoid division by 0
          0.0,
          0.0,
-         thexp.std_dt(0.0)]
+         uq.std_dt(0.0)]
 
   # Compute factors only (unknown standard deviations, single test)
-  f = thexp.propagUQ(val, std, 1)[0]
+  f = uq.propagUQ(val, std, 1)[0]
 
   plt.figure(i)
   plt.plot(temp, f[0], label='factor V, '+ref)

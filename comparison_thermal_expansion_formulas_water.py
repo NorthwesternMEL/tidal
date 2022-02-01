@@ -37,8 +37,8 @@ See the README file in the top-level TIDAL directory.
 import numpy as np
 import matplotlib.pyplot as plt
 
-from tidal import thexp
 from tidal import data
+from tidal.core import thexp
 
 # ------------------------------------------------------------------------------
 # Comparison of different formulas of the literature for the thermal expansion
@@ -56,12 +56,12 @@ temp = np.arange(tlo, thi + 0.5*tincr, tincr, dtype=float)
 # expansion is calculated with 2nd order central differences at tlo and thi
 tempad = np.arange(tlo-tincr, thi + 0.5*tincr + tincr, tincr, dtype=float)
 
-bw_Baldi88 = thexp.coef_w_Baldi88(patm,temp) # Baldi et al., 1988
-bw_Cekerevac05 = thexp.coef_w_Cekerevac05(patm,temp) # Cekerevac et al., 2005
-bw_Smith54 = thexp.coef_w_Smith54(tcw, temp) # Smith et al., 2005
-bw_Chapman74 = thexp.coef_w_Chapman74(temp) # Chapman, 1974
-bw_IAPWS95 = thexp.coef_w_IAPWS95_tab(data.path_IAPWS95_1atm, tempad)[0][1:-1]
-bw_CRC40ed = thexp.coef_w_CRC40ed(temp) # CRC Handbook 40th ed, 1958-1959
+bw_Baldi88 = thexp.vcte_w_Baldi88(patm,temp) # Baldi et al., 1988
+bw_Cekerevac05 = thexp.vcte_w_Cekerevac05(patm,temp) # Cekerevac et al., 2005
+bw_Smith54 = thexp.vcte_w_Smith54(tcw, temp) # Smith et al., 2005
+bw_Chapman74 = thexp.vcte_w_Chapman74(temp) # Chapman, 1974
+bw_IAPWS95 = thexp.vcte_w_IAPWS95_tab(data.path_IAPWS95_1atm, tempad)[0][1:-1]
+bw_CRC40ed = thexp.vcte_w_CRC40ed(temp) # CRC Handbook 40th ed, 1958-1959
 
 # Plot results and export to comma-separated tables
 plt.figure(1)
@@ -96,24 +96,24 @@ np.savetxt("tab_comparison_thermal_expansion_formulas_water.csv",
 # ------------------------------------------------------------------------------
 
 # Baldi et al., 1988
-bw_Baldi88_50kPa = thexp.coef_w_Baldi88(50e3,temp)
-bw_Baldi88_200kPa = thexp.coef_w_Baldi88(200e3,temp)
-bw_Baldi88_400kPa = thexp.coef_w_Baldi88(400e3,temp)
-bw_Baldi88_1000kPa = thexp.coef_w_Baldi88(1000e3,temp)
+bw_Baldi88_50kPa = thexp.vcte_w_Baldi88(50e3,temp)
+bw_Baldi88_200kPa = thexp.vcte_w_Baldi88(200e3,temp)
+bw_Baldi88_400kPa = thexp.vcte_w_Baldi88(400e3,temp)
+bw_Baldi88_1000kPa = thexp.vcte_w_Baldi88(1000e3,temp)
 
 # IAPWS-95: tabulated values
 bw_IAPWS95_p = [
-  thexp.coef_w_IAPWS95_tab(data.path_IAPWS95_50kPa, tempad)[0][1:-1],
-  thexp.coef_w_IAPWS95_tab(data.path_IAPWS95_200kPa, tempad)[0][1:-1],
-  thexp.coef_w_IAPWS95_tab(data.path_IAPWS95_400kPa, tempad)[0][1:-1],
-  thexp.coef_w_IAPWS95_tab(data.path_IAPWS95_1MPa, tempad)[0][1:-1]]
+  thexp.vcte_w_IAPWS95_tab(data.path_IAPWS95_50kPa, tempad)[0][1:-1],
+  thexp.vcte_w_IAPWS95_tab(data.path_IAPWS95_200kPa, tempad)[0][1:-1],
+  thexp.vcte_w_IAPWS95_tab(data.path_IAPWS95_400kPa, tempad)[0][1:-1],
+  thexp.vcte_w_IAPWS95_tab(data.path_IAPWS95_1MPa, tempad)[0][1:-1]]
   
 # IAPWS-95: 3rd degree polynomial fitting of the IAPWS-95 values. Temperature
 # range T=[20 ; 80] degC and pressure range p=[50 ; 1000] kPa.
 # The coefficients obtained in the variable `bw_IAPWS95_coef` below are used to
 # inform the preset 'd3_t20-80_p50-1000' of the fitting function named
-# 'coef_w_IAPWS95_fit' in the 'thexp' module
-bw_IAPWS95_fit, bw_IAPWS95_coef = thexp.coef_w_IAPWS95_fit('compute', temp,
+# 'vcte_w_IAPWS95_fit' in the 'thexp' module
+bw_IAPWS95_fit, bw_IAPWS95_coef = thexp.vcte_w_IAPWS95_fit('compute', temp,
                                                            bw_IAPWS95_p, 3)
 
 # Plot results and export to comma-separated tables

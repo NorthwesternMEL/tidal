@@ -37,20 +37,12 @@ See the README file in the top-level TIDAL directory.
 import numpy as np
 import matplotlib.pyplot as plt
 
-from tidal import thexp
+from tidal.core import thexp
+from tidal.core import inteq
 from tidal import data
 from tidal.data import rdNg2016
 from tidal.data import rdLiu2018
 
-# after importing the modules, you can look where they are. the main module tidal must be in the PYTHONPATH !
-# import inspect
-# import os
-# os.path.dirname(rdNg2016.__file__) # gives empty path
-# os.path.abspath(rdNg2016.__file__) # gives module file full path
-# os.path.dirname(os.path.abspath(rdNg2016.__file__))
-
-# tidalpath = os.path.normpath(os.path.dirname(inspect.getfile(thexp)))
-# datapath = os.path.normpath(tidalpath+"/data")
 
 # Temperature range for the calculation [25 - 55] degC
 ti = 25 # Initial temperature [degC]
@@ -65,18 +57,18 @@ temp = np.arange(ti, tf + 0.5*tincr, tincr, dtype=float)
 # Volumetric thermal expansion coefficient of the solid grains
 bs_lo = 3e-5 # Value used by Ng et al., 2016 [1/degC]
 bs_hi = 3.5e-5 # Value used by Liu et al., 2018 [1/degC]
-bs_kos = thexp.coef_s_Kosinski91(temp, 5) # 5th order value used
+bs_kos = thexp.vcte_s_Kosinski91(temp, 5) # 5th order value used
                                           # by Kosinski et al., 1991 [1/degC]
 
 # Relative volume change, use unit initial volume (vsi = 1) to make relative
 # Exact integration, equation (20) in Coulibaly et al., 2022
-dvs_kos_exact = thexp.deltaVth('beta', 1.0, bs_kos, temp)*1e2
+dvs_kos_exact = inteq.deltaVth('beta', 1.0, bs_kos, temp)*1e2
 # Small expansion integration, equation (22) in Coulibaly et al., 2022
-dvs_kos_small = thexp.deltaVth('small', 1.0, bs_kos, temp)*1e2
+dvs_kos_small = inteq.deltaVth('small', 1.0, bs_kos, temp)*1e2
 # Linear formula, equation (11) in Coulibaly et al., 2022
-dvs_kos_lin = thexp.deltaVth('linear', 1.0, bs_kos, temp)*1e2
-dvs_lo_lin = thexp.deltaVth('linear', 1.0, bs_lo, temp)*1e2
-dvs_hi_lin = thexp.deltaVth('linear', 1.0, bs_hi, temp)*1e2
+dvs_kos_lin = inteq.deltaVth('linear', 1.0, bs_kos, temp)*1e2
+dvs_lo_lin = inteq.deltaVth('linear', 1.0, bs_lo, temp)*1e2
+dvs_hi_lin = inteq.deltaVth('linear', 1.0, bs_hi, temp)*1e2
 
 # Plot results and export to comma-separated tables
 plt.figure(1)
@@ -110,19 +102,19 @@ np.savetxt("tab_integration_solid_expansion.csv",
 # Add 1 increment of padding to the temperature for the IAPWS-95 so that thermal
 # expansion is calculated with 2nd order central differences at first/last value
 tempad = np.concatenate([[2*temp[0]-temp[1]],temp,[2*temp[-1]-temp[-2]]])
-bw, rhow = thexp.coef_w_IAPWS95_tab(data.path_IAPWS95_1atm, tempad)
+bw, rhow = thexp.vcte_w_IAPWS95_tab(data.path_IAPWS95_1atm, tempad)
 bw = bw[1:-1]
 rhow = rhow[1:-1] # Density of water
 rhow0 = rhow[0] # Density of water at room temperature T0 assuming T0=Ti
 
 # Relative volume change, use unit initial volume (vwi = 1) to make relative
 # Exact integration, equation (21) in Coulibaly et al., 2022
-dvwth_exact = thexp.deltaVth('beta', 1.0, bw, temp)*1e2
-#           = thexp.deltaVth('rho', 1.0, rhow)*1e2 # Alternative using density
+dvwth_exact = inteq.deltaVth('beta', 1.0, bw, temp)*1e2
+#           = inteq.deltaVth('rho', 1.0, rhow)*1e2 # Alternative using density
 # Small expansion integration, equation (23) in Coulibaly et al., 2022
-dvwth_small = thexp.deltaVth('small', 1.0, bw, temp)*1e2
+dvwth_small = inteq.deltaVth('small', 1.0, bw, temp)*1e2
 # Linear formula, equation (12) in Coulibaly et al., 2022
-dvwth_lin = thexp.deltaVth('linear', 1.0, bw, temp)*1e2
+dvwth_lin = inteq.deltaVth('linear', 1.0, bw, temp)*1e2
 
 # Plot results and export to comma-separated tables
 plt.figure(2)
@@ -152,9 +144,9 @@ bm = 3e-5*np.ones(temp.size) # Get realistic value from some material, e.g., sta
 # Volume correction for porous dummy sample [mm3]. Use vme_por = 0, and unit
 # initial volume (vwi = 1) to make relative
 # Exact integration, equation (26) in Coulibaly et al., 2022
-dvcal_exact = thexp.deltaVcal_por('exact', 0.0, 1.0, bw, bm, temp, rhow, rhow0)
+dvcal_exact = inteq.deltaVcal_por('exact', 0.0, 1.0, bw, bm, temp, rhow, rhow0)
 # Simple integration, equation (27) in Coulibaly et al., 2022
-dvcal_simple = thexp.deltaVcal_por('simple', 0.0, 1.0, bw, bm, temp)
+dvcal_simple = inteq.deltaVcal_por('simple', 0.0, 1.0, bw, bm, temp)
 errdvcal = (dvcal_exact - dvcal_simple)*1e2
 
 plt.figure(10)
@@ -194,7 +186,7 @@ for (ref, study, vu, fnameIAPWS95) in zip(['Ng2016', 'Liu2018'],
   # Add padding using linear extrapolation of temperature so thermal expansion
   # is calculated with 2nd order central differences at first/last value
   tempad = np.concatenate([[2*temp[0]-temp[1]],temp,[2*temp[-1]-temp[-2]]])
-  bw, rhow = thexp.coef_w_IAPWS95_tab(fnameIAPWS95, tempad)
+  bw, rhow = thexp.vcte_w_IAPWS95_tab(fnameIAPWS95, tempad)
   bw = bw[1:-1]
   rhow = rhow[1:-1] # Density of water
   rhow0 = rhow[0] # Density of water at room temperature T0 assuming T0=Ti
@@ -202,16 +194,16 @@ for (ref, study, vu, fnameIAPWS95) in zip(['Ng2016', 'Liu2018'],
   # Volume of expelled water [mm3]. Equation (8) and (24) of Coulibaly and
   # Rotta Loria 2022
   # Neglect density ratio
-  dvdr_vc = thexp.deltaVdr('vc', dvme_interp, dvcal_interp)
+  dvdr_vc = inteq.deltaVdr('vc', dvme_interp, dvcal_interp)
   # Exact integration
-  dvdr_mc = thexp.deltaVdr('mc', dvme_interp, dvcal_interp, rhow, rhow0)
+  dvdr_mc = inteq.deltaVdr('mc', dvme_interp, dvcal_interp, rhow, rhow0)
   # Relative error between volume/mass conservation expressions [%]
   errvdr = (dvdr_mc - dvdr_vc)/vi*1e2
 
   # Coupled drainage-expansion volume change of water [mm3]
   # Coupled term (25) always obtained using Vdr with density ratio from (24)
-  dvw_dr = thexp.deltaVw_dr('beta', bw, dvdr_mc, temp) # Vdr from Equation (24)
-  #      = thexp.deltaVw_dr('rho', rhow, dvdr_mc) # Alternative using density
+  dvw_dr = inteq.deltaVw_dr('beta', bw, dvdr_mc, temp) # Vdr from Equation (24)
+  #      = inteq.deltaVw_dr('rho', rhow, dvdr_mc) # Alternative using density
   # Relative error between coupled/uncoupled expressions [%]
   # Uncoupled term obtained using either (24), to isolate effects of coupling
   # or using (8) to highlight the effects of both density ratio and coupling in

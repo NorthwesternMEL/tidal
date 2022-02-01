@@ -2,7 +2,7 @@
 TIDAL : Thermally Induced Deformation Analysis Library
 ======================================================
 
-Data subpackage
+Core subpackage
 Python 2
 Scipy version 1.2.1
 Numpy version 1.16.2
@@ -10,9 +10,9 @@ Jibril B. Coulibaly, jibril.coulibaly at gmail.com
 
 
 Provides
-  1. Tabulated Raw data of the literature
-  2. TBD
-  3. TBD
+  1. Module for thermal expansion coefficient of substances
+  2. Module for integration of the differential and conservation equations
+  3. Module for uncertainty quantification
 
 How to use the documentation
 ----------------------------
@@ -34,15 +34,11 @@ See the README file in the top-level TIDAL directory.
 UNDER CONSTRUCTION
 """
 
-import os
+from thexp import *
+from inteq import *
+from uq import *
 
-datapath = os.path.abspath(os.path.dirname(__file__))
-
-path_IAPWS95_1atm = os.path.join(datapath,"dat_IAPWS95_1atm_10-90-0.5degC")
-path_IAPWS95_50kPa = os.path.join(datapath,"dat_IAPWS95_50kPa_10-90-0.5degC")
-path_IAPWS95_100kPa = os.path.join(datapath,"dat_IAPWS95_100kPa_10-90-0.5degC")
-path_IAPWS95_200kPa = os.path.join(datapath,"dat_IAPWS95_200kPa_10-90-0.5degC")
-path_IAPWS95_300kPa = os.path.join(datapath,"dat_IAPWS95_300kPa_10-90-0.5degC")
-path_IAPWS95_400kPa = os.path.join(datapath,"dat_IAPWS95_400kPa_10-90-0.5degC")
-path_IAPWS95_800kPa = os.path.join(datapath,"dat_IAPWS95_800kPa_10-90-0.5degC")
-path_IAPWS95_1MPa = os.path.join(datapath,"dat_IAPWS95_1MPa_10-90-0.5degC")
+__all__ = ['thexp', 'inteq', 'uq']
+__all__ += thexp.__all__
+__all__ += inteq.__all__
+__all__ += uq.__all__
