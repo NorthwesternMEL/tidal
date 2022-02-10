@@ -179,7 +179,7 @@ def std_vsi(ms, rhosi, s_ms, s_rhosi):
     out : float
       Standard deviation of the initial volume of solid grains
   """
-  return np.sqrt((s_ms/rhosi)**2 + (s_rhosi/ms)**2)
+  return (ms/rhosi)*np.sqrt((s_ms/ms)**2 + (s_rhosi/rhosi)**2)
 
 
 def std_dt(s_t):
