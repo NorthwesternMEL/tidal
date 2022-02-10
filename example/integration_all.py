@@ -8,16 +8,8 @@ Scipy version 1.2.1
 Numpy version 1.16.2
 Jibril B. Coulibaly, jibril.coulibaly at gmail.com
 
-Everything in SI units
-
-except for temperature in Celsius degrees (noted degC)
-Degrees Celsius [degC]
-Degrees Farenheit [degF]
-Kelvin [K]
-Degrees Rankine [degR]
-
-No exceptions checked for invalid inputs. Users responsability
-The top-level TIDAL directory must be accessible to the PYTHONPATH
+Units and dimensions must be consistent between all input variables.
+No exceptions checked for invalid inputs. Users responsability.
 
 Copyright (C) 2021 Mechanics and Energy Laboratory, Northwestern University
 
@@ -72,9 +64,9 @@ dvs_hi_lin = inteq.deltaVth('linear', 1.0, bs_hi, temp)*1e2
 
 # Plot results and export to comma-separated tables
 plt.figure(1)
-plt.plot(temp, dvs_kos_exact, label=r"Exact (Kosinski et al., 1991)")
-plt.plot(temp, dvs_kos_small, label=r"Small (Kosinski et al., 1991)")
-plt.plot(temp, dvs_kos_lin, label=r"Linear (Kosinski et al., 1991)")
+plt.plot(temp, dvs_kos_exact, label="Exact (Kosinski et al., 1991)")
+plt.plot(temp, dvs_kos_small, label="Small (Kosinski et al., 1991)")
+plt.plot(temp, dvs_kos_lin, label="Linear (Kosinski et al., 1991)")
 plt.plot(temp, dvs_lo_lin, label=r"Linear ($\beta_s=$"+str(bs_lo)+" 1/degC)")
 plt.plot(temp, dvs_hi_lin, label=r"Linear ($\beta_s=$"+str(bs_hi)+" 1/degC)")
 plt.xlabel(r'Temperature $T$ [degC]')
@@ -118,9 +110,9 @@ dvwth_lin = inteq.deltaVth('linear', 1.0, bw, temp)*1e2
 
 # Plot results and export to comma-separated tables
 plt.figure(2)
-plt.plot(temp, dvwth_exact, label=r"Exact (IAPWS-95)")
-plt.plot(temp, dvwth_small, label=r"Small (IAPWS-95)")
-plt.plot(temp, dvwth_lin, label=r"Linear (IAPWS-95)")
+plt.plot(temp, dvwth_exact, label="Exact (IAPWS-95)")
+plt.plot(temp, dvwth_small, label="Small (IAPWS-95)")
+plt.plot(temp, dvwth_lin, label="Linear (IAPWS-95)")
 plt.xlabel(r'Temperature $T$ [degC]')
 plt.ylabel('Thermal expansion of initial water volume '+
            r'$\Delta V_w^{th}/V_{w,i}$ [%]')
@@ -241,6 +233,4 @@ for (ref, study, vu, fnameIAPWS95) in zip(['Ng2016', 'Liu2018'],
                      ",(dVdr_mc-dVdr_vc)/Vi_pct,dVw_dr_"+vu+
                      ",(dVw_dr-dVdr_vc)/Vi_pct,(dVw_dr-dVdr_mc)/Vi_pct"),
              delimiter=',')
-
-
 

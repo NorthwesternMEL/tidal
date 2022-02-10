@@ -11,18 +11,8 @@ Scipy version 1.2.1
 Numpy version 1.16.2
 Jibril B. Coulibaly, jibril.coulibaly at gmail.com
 
-
-Supplemental material to Coulibaly and Rotta Loria, 2022: Thermally induced
-deformation of soils: a critical revision of experimental methods. GETE
-DOI: TBD
-
-except for temperature in Celsius degrees (noted degC)
-Degrees Celsius [degC]
-Degrees Farenheit [degF]
-Kelvin [K]
-Degrees Rankine [degR]
-
-No exceptions checked for invalid inputs. Users responsability
+Units and dimensions must be consistent between all input variables.
+No exceptions checked for invalid inputs. Users responsability.
 
 Copyright (C) 2021 Mechanics and Energy Laboratory, Northwestern University
 

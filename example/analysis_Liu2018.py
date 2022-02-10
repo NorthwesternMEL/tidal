@@ -12,9 +12,8 @@ Scipy version 1.2.1
 Numpy version 1.16.2
 Jibril B. Coulibaly, jibril.coulibaly at gmail.com
 
-SI units unless indicated otherwise
-No exceptions checked for invalid inputs. Users responsability
-The top-level TIDAL directory must be accessible to the PYTHONPATH
+Units and dimensions must be consistent between all input variables.
+No exceptions checked for invalid inputs. Users responsability.
 
 Copyright (C) 2021 Mechanics and Energy Laboratory, Northwestern University
 
@@ -55,9 +54,9 @@ dvs = rdLiu2018.dvs # Volume change of solid grains [cm3]
 
 ### Verification 1: integration of the thermal expansion of solid grains
 bs = rdLiu2018.bs*np.ones(len(temp))
-# Exact integration, equation (20) in Coulibaly et al., 2022
+# Exact integration, equation (21) in Coulibaly and Rotta Loria, 2022
 dvs_exact = inteq.deltaVth('beta', vsi, bs, temp)
-# Small thermal expansion integration, equation (22) in Coulibaly et al., 2022
+# Small thermal expansion integration, equation (23) in Coulibaly et al., 2022
 dvs_small = inteq.deltaVth('small', vsi, bs, temp)
 # Linear thermal expansion formula, equation (11) in Coulibaly et al., 2022
 dvs_lin = inteq.deltaVth('linear', vsi, bs, temp)
@@ -94,9 +93,9 @@ np.savetxt("tab_verif_Liu2018_integration_solid.csv",
 
 # Different integrations of the thermal expansion of CRC 40th edition
 bw = thexp.vcte_w_CRC40ed(temp) # CRC Handbook 40th ed, 1958
-# Exact integration, equation (21) in Coulibaly et al., 2022
+# Exact integration, equation (22) in Coulibaly et al., 2022
 dvw_exact_CRC = inteq.deltaVth('beta', vwi, bw, temp)
-# Small thermal expansion integration, equation (23) in Coulibaly et al., 2022
+# Small thermal expansion integration, equation (24) in Coulibaly et al., 2022
 dvw_small_CRC = inteq.deltaVth('small', vwi, bw, temp)
 # Linear thermal expansion formula, equation (12) in Coulibaly et al., 2022
 dvw_lin_CRC = inteq.deltaVth('linear', vwi, bw, temp)
@@ -116,7 +115,7 @@ plt.legend()
 # Let's try the formula of Baldi et al., 1988 for back pressure of 300 kPa
 u = rdLiu2018.u # Back pressure [Pa]
 bw = thexp.vcte_w_Baldi88(u,temp) # Baldi et al., 1988
-# Exact integration, equation (21) in Coulibaly et al., 2022
+# Exact integration, equation (21) in Coulibaly and Rotta Loria, 2022
 dvw_exact_Baldi88 = inteq.deltaVth('beta', vwi, bw, temp)
 # Small thermal expansion integration, equation (23) in Coulibaly et al., 2022
 dvw_small_Baldi88 = inteq.deltaVth('small', vwi, bw, temp)

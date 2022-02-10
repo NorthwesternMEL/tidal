@@ -8,16 +8,8 @@ Scipy version 1.2.1
 Numpy version 1.16.2
 Jibril B. Coulibaly, jibril.coulibaly at gmail.com
 
-Everything in SI units
-
-except for temperature in Celsius degrees (noted degC)
-Degrees Celsius [degC]
-Degrees Farenheit [degF]
-Kelvin [K]
-Degrees Rankine [degR]
-
-No exceptions checked for invalid inputs. Users responsability
-The top-level TIDAL directory must be accessible to the PYTHONPATH
+Units and dimensions must be consistent between all input variables.
+No exceptions checked for invalid inputs. Users responsability.
 
 Copyright (C) 2021 Mechanics and Energy Laboratory, Northwestern University
 
@@ -67,7 +59,7 @@ for i, (ref, study, fname) in enumerate(zip(['Ng2016', 'Liu2018'],
   dvcal = np.interp(np.linspace(0,study.dvcal.size-1,npt),
                    np.arange(study.dvcal.size), study.dvcal)
 
-  # Volumetric thermal expansion coefficient of solid grains must be given as a
+  # Volumetric thermal expansion coefficient of solid grains, must be given as a
   # numpy array for integration
   bs = study.bs*np.ones(temp.size)
   # Volumetric thermal expansion coefficient of water from IAPWS-95.
@@ -83,7 +75,7 @@ for i, (ref, study, fname) in enumerate(zip(['Ng2016', 'Liu2018'],
          study.vsi, # Initial volume of the solid grains [mm3/cm3]
          bs, # Thermal expansion coefficient of solid grains [1/degC]
          bw, # Thermal expansion coefficient of water [1/degC]
-         temp] # Temperature varation [degC]
+         temp - temp[0]] # Temperature varation [degC]
   # Unknown standard deviation for the tests replicated: set all to zero
   # Use dedicated functions for vi, vsi and dt for illustration purposes
   std = [uq.std_vi(0.0, 0.0, 0.0),

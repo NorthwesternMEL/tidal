@@ -2,21 +2,15 @@
 TIDAL : Thermally Induced Deformation Analysis Library
 ======================================================
 
-Core subpackage
 Python 2
 Scipy version 1.2.1
 Numpy version 1.16.2
 Jibril B. Coulibaly, jibril.coulibaly at gmail.com
 
-
-Provides
-  1. Module for thermal expansion coefficient of substances
-  2. Module for integration of the differential and conservation equations
-  3. Module for uncertainty quantification
-
-How to use the documentation
-----------------------------
-Documentation is available through docstrings provided with the code
+Core sub-package:
+  1. Module `thexp` : thermal expansion coefficient of substances
+  2. Module `inteq` : integration of the differential and conservation equations
+  3. Module `uq` : uncertainty quantification
 
 Copyright (C) 2021 Mechanics and Energy Laboratory, Northwestern University
 
@@ -31,7 +25,6 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 See the README file in the top-level TIDAL directory.
-UNDER CONSTRUCTION
 """
 
 from thexp import *

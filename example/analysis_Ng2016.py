@@ -2,7 +2,7 @@
 Verification of the thermal expansion calculations of Ng et al., 2016: Volume
 change behaviour of saturated sand, Geotechnique Letters. 6:124-131
 DOI: https://doi.org/10.1680/jgele.15.00148
-Provides data for Appendix B (Table X) of Coulibaly and Rotta Loria 2022
+Provides data for Appendix B (Table 6) of Coulibaly and Rotta Loria 2022
 
 General information and data recovered for test D70S200TC, chosen because most
 of the data is tabulated and available throughout the original paper
@@ -12,9 +12,8 @@ Scipy version 1.2.1
 Numpy version 1.16.2
 Jibril B. Coulibaly, jibril.coulibaly at gmail.com
 
-SI units unless indicated otherwise
-No exceptions checked for invalid inputs. Users responsability
-The top-level TIDAL directory must be accessible to the PYTHONPATH
+Units and dimensions must be consistent between all input variables.
+No exceptions checked for invalid inputs. Users responsability.
 
 Copyright (C) 2021 Mechanics and Energy Laboratory, Northwestern University
 
@@ -58,19 +57,19 @@ dvs_vi = rdNg2016.dvs_vi # Relative volume change of solid grains [%]
 
 ### Verification 1: integration of the thermal expansion of solid grains
 bs = rdNg2016.bs*np.ones(len(temp))
-# Exact integration, equation (20) in Coulibaly et al., 2022
+# Exact integration, equation (21) in Coulibaly and Rotta Loria, 2022
 dvs_vi_exact = inteq.deltaVth('beta', pfi, bs, temp)*1e2
-# Small thermal expansion integration, equation (22) in Coulibaly et al., 2022
+# Small thermal expansion integration, equation (23) in Coulibaly et al., 2022
 dvs_vi_small = inteq.deltaVth('small', pfi, bs, temp)*1e2
 # Linear thermal expansion formula, equation (11) in Coulibaly et al., 2022
 dvs_vi_lin = inteq.deltaVth('linear', pfi, bs, temp)*1e2
 
 plt.figure(1)
-plt.plot(temp, dvs_vi, 'ko', label=r"Ng et al., 2016 (Table 3)")
-plt.plot(temp, dvs_vi*4.7, 'ro', label=r"Ng et al., 2016 (x4.7)")
-plt.plot(temp, dvs_vi_exact, label=r"Exact integration")
-plt.plot(temp, dvs_vi_small, label=r"Small coefficient")
-plt.plot(temp, dvs_vi_lin, label=r"Linear")
+plt.plot(temp, dvs_vi, 'ko', label="Ng et al., 2016 (Table 3)")
+plt.plot(temp, dvs_vi*4.7, 'ro', label="Ng et al., 2016 (x4.7)")
+plt.plot(temp, dvs_vi_exact, label="Exact integration")
+plt.plot(temp, dvs_vi_small, label="Small coefficient")
+plt.plot(temp, dvs_vi_lin, label="Linear")
 plt.plot(temp, dvs_vi - dvs_vi_lin, label="Correction")
 plt.xlabel(r'Temperature $T$ [degC]')
 plt.ylabel(r'Relative volume change of solid, $\Delta V_s/V_i$ [%]')
@@ -101,18 +100,18 @@ np.savetxt("tab_verif_Ng2016_integration_solid.csv",
 
 u = rdNg2016.u # Back pressure [Pa]
 bw = thexp.vcte_w_Baldi88(u,temp) # Baldi et al., 1988
-# Exact integration, equation (21) in Coulibaly et al., 2022
+# Exact integration, equation (22) in Coulibaly and Rotta Loria, 2022
 dvw_vi_exact = inteq.deltaVth('beta', ni, bw, temp)*1e2
-# Small thermal expansion integration, equation (23) in Coulibaly et al., 2022
+# Small thermal expansion integration, equation (24) in Coulibaly et al., 2022
 dvw_vi_small = inteq.deltaVth('small', ni, bw, temp)*1e2
 # Linear thermal expansion formula, equation (12) in Coulibaly et al., 2022
 dvw_vi_lin = inteq.deltaVth('linear', ni, bw, temp)*1e2
 
 plt.figure(2)
-plt.plot(temp, dvw_vi, 'ko', label=r"Ng et al., 2016 (Table 3)")
-plt.plot(temp, dvw_vi_exact, label=r"Exact integration")
-plt.plot(temp, dvw_vi_small, label=r"Small coefficient")
-plt.plot(temp, dvw_vi_lin, label=r"Linear")
+plt.plot(temp, dvw_vi, 'ko', label="Ng et al., 2016 (Table 3)")
+plt.plot(temp, dvw_vi_exact, label="Exact integration")
+plt.plot(temp, dvw_vi_small, label="Small coefficient")
+plt.plot(temp, dvw_vi_lin, label="Linear")
 plt.xlabel(r'Temperature $T$ [degC]')
 plt.ylabel(r'Relative volume change of water, $\Delta V_w/V_i$ [%]')
 plt.title("Integration of thermal expansion of water")
@@ -127,5 +126,5 @@ np.savetxt("tab_verif_Ng2016_integration_water.csv",
                    "dVw_Vi_small_pct,dVw_Vi_linear_pct"),
            delimiter=',')
 # The results seem to show that Ng et al., 2016 actually integrated the thermal
-# expansion of water adequately, i.e. using equation (21) or (23) of Coulibaly
-# and Rotta Loria 2022, but wrongly wrote the linearized formula in text
+# expansion of water adequately, i.e. using equation (22) or (24) of Coulibaly
+# and Rotta Loria 2022, but wrongly wrote the linearized formula in text.

@@ -2,21 +2,15 @@
 TIDAL : Thermally Induced Deformation Analysis Library
 ======================================================
 
-Data subpackage
 Python 2
 Scipy version 1.2.1
 Numpy version 1.16.2
 Jibril B. Coulibaly, jibril.coulibaly at gmail.com
 
-
-Provides
-  1. Tabulated Raw data of the literature
-  2. TBD
-  3. TBD
-
-How to use the documentation
-----------------------------
-Documentation is available through docstrings provided with the code
+Data sub-package:
+  1. Tabulated IAPWS-95 water properties for select pressure/temperature ranges
+  2. Module `rdNg2016` : Available raw data of Ng et al., 2016
+  3. Module `rdLiu2018` : Available raw data of Liu et al., 2018
 
 Copyright (C) 2021 Mechanics and Energy Laboratory, Northwestern University
 

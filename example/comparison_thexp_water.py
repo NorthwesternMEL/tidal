@@ -8,16 +8,8 @@ Scipy version 1.2.1
 Numpy version 1.16.2
 Jibril B. Coulibaly, jibril.coulibaly at gmail.com
 
-Everything in SI units
-
-except for temperature in Celsius degrees (noted degC)
-Degrees Celsius [degC]
-Degrees Farenheit [degF]
-Kelvin [K]
-Degrees Rankine [degR]
-
-No exceptions checked for invalid inputs. Users responsability
-The top-level TIDAL directory must be accessible to the PYTHONPATH
+Units and dimensions must be consistent between all input variables.
+No exceptions checked for invalid inputs. Users responsability.
 
 Copyright (C) 2021 Mechanics and Energy Laboratory, Northwestern University
 
@@ -92,7 +84,6 @@ np.savetxt("tab_comparison_thermal_expansion_formulas_water.csv",
 # ------------------------------------------------------------------------------
 # Comparison of Baldi et al., 1988 and IAPWS-95 formulas for different levels of
 # pressure: 50, 200, 400, and 1000 kPa
-# 
 # ------------------------------------------------------------------------------
 
 # Baldi et al., 1988
@@ -107,7 +98,7 @@ bw_IAPWS95_p = [
   thexp.vcte_w_IAPWS95_tab(data.path_IAPWS95_200kPa, tempad)[0][1:-1],
   thexp.vcte_w_IAPWS95_tab(data.path_IAPWS95_400kPa, tempad)[0][1:-1],
   thexp.vcte_w_IAPWS95_tab(data.path_IAPWS95_1MPa, tempad)[0][1:-1]]
-  
+
 # IAPWS-95: 3rd degree polynomial fitting of the IAPWS-95 values. Temperature
 # range T=[20 ; 80] degC and pressure range p=[50 ; 1000] kPa.
 # The coefficients obtained in the variable `bw_IAPWS95_coef` below are used to

@@ -7,16 +7,6 @@ Scipy version 1.2.1
 Numpy version 1.16.2
 Jibril B. Coulibaly, jibril.coulibaly at gmail.com
 
-
-Provides
-  1. TBD
-  2. TBD
-  3. TBD
-
-How to use the documentation
-----------------------------
-Documentation is available through docstrings provided with the code
-
 Copyright (C) 2021 Mechanics and Energy Laboratory, Northwestern University
 
 This program is free software: you can redistribute it and/or modify
@@ -30,7 +20,6 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 See the README file in the top-level TIDAL directory.
-UNDER CONSTRUCTION
 """
 
 from . import data
