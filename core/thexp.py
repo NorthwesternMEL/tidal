@@ -67,7 +67,7 @@ def r2k(t_degR):
 def vcte_w_Baldi88(u, t):
   """
   Compute thermal expansion coefficient of water from Baldi et al., 1988.
-  
+
   Thermal volume changes of the mineral-water system in low-porosity clay soils.
   Canadian Geotechnical Journal. Baldi et al., 1988.
   DOI: https://doi.org/10.1139/t88-089
@@ -253,6 +253,15 @@ def vcte_w_IAPWS95_tab(ifile, t, ofile=None):
   temp = data["Temperature_C"]
   vol = data["Volume_m3kg"]
   dens = data["Density_kgm3"]
+
+  # Verify if water is in liquid phase in the input temperature range t
+  # Only check highest/lowest value, i.e., first value below min and first value
+  # above max, within range of the data.
+  idmin = max((np.abs(temp - np.min(t))).argmin() - 1, 0)
+  idmax = min((np.abs(temp - np.max(t))).argmin() + 1, ndata - 1)
+  if ((data["Phase"][idmin] != 'liquid') or
+      (data["Phase"][idmax] != 'liquid')):
+    raise ValueError("Water is not in liquid phase for this temperature range")
 
   thexp[0] = ((vol[1] - vol[0])/(temp[1] - temp[0]))
   thexp[-1] = ((vol[-1] - vol[-2])/(temp[-1] - temp[-2]))
