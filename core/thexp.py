@@ -28,7 +28,7 @@ import numpy as np
 
 # Exnternally (publically) accessed methods
 __all__ = ['vcte_w_Baldi88', 'vcte_w_Cekerevac05', 'vcte_w_Smith54',
-           'vcte_w_Chapman74', 'vcte_w_CRC40ed', 'vcte_w_IAPWS95_tab',
+           'vcte_w_Chapman67', 'vcte_w_CRC40ed', 'vcte_w_IAPWS95_tab',
            'vcte_w_IAPWS95_fit', 'vcte_s_Kosinski91']
 
 # Utility functions for temperature conversion
@@ -132,9 +132,9 @@ def vcte_w_Smith54(tc, t):
   organic liquids. The Journal of Physical Chemistry. Smith et al., 1954.
   DOI: https://doi.org/10.1021/J150515A016
   Equation (7A), p. 445.
-  Also discussed in Chapman 1974, Heat Transfer, 3rd edition. Macmillan
-  ISBN: 0023214503
-  Equation (27), p. 33 of Chapman 1974 is given for temperature in Rankine
+  Also discussed in Chapman 1967, Heat Transfer, 3rd edition. Macmillan
+  ISBN: 9780023214400
+  Equation (2.7), p. 33 of Chapman 1967 is given for temperature in Rankine
   degrees so the prefactor is 0.06284 = 0.04314*(5/9)**(-0.641), instead of the
   original value of 0.04314 from Smith et al., 1954. The factor 5/9 comes from
   the conversion from Rankine degree to Celsius degree.
@@ -154,12 +154,12 @@ def vcte_w_Smith54(tc, t):
   return 0.04314*(tc-t)**(-0.641)
 
 
-def vcte_w_Chapman74(t):
+def vcte_w_Chapman67(t):
   """
-  Compute thermal expansion coefficient of saturated water from Chapman 1974.
+  Compute thermal expansion coefficient of saturated water from Chapman 1967.
 
-  Heat Transfer, 3rd edition. Macmillan. Chapman, 1974. ISBN: 0023214503
-  Tabulated values from Table A.4 p. 586 are linearly interpolated.
+  Heat Transfer, 2nd edition. Macmillan. Chapman, 1967. ISBN: 9780023214400
+  Tabulated values from Table A.4 p. 558 are linearly interpolated.
 
   Arguments:
   ----------

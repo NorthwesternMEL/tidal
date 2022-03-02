@@ -51,7 +51,7 @@ tempad = np.arange(tlo-tincr, thi + 0.5*tincr + tincr, tincr, dtype=float)
 bw_Baldi88 = thexp.vcte_w_Baldi88(patm,temp) # Baldi et al., 1988
 bw_Cekerevac05 = thexp.vcte_w_Cekerevac05(patm,temp) # Cekerevac et al., 2005
 bw_Smith54 = thexp.vcte_w_Smith54(tcw, temp) # Smith et al., 2005
-bw_Chapman74 = thexp.vcte_w_Chapman74(temp) # Chapman, 1974
+bw_Chapman67 = thexp.vcte_w_Chapman67(temp) # Chapman, 1967
 bw_IAPWS95 = thexp.vcte_w_IAPWS95_tab(data.path_IAPWS95_1atm, tempad)[0][1:-1]
 bw_CRC40ed = thexp.vcte_w_CRC40ed(temp) # CRC Handbook 40th ed, 1958-1959
 
@@ -60,7 +60,7 @@ plt.figure(1)
 plt.plot(temp, bw_Baldi88*1e4, label="Baldi et al., 1988 (p=1 atm)")
 plt.plot(temp, bw_Cekerevac05*1e4, label="Cekerevac et al., 2005 (p=1 atm)")
 plt.plot(temp, bw_Smith54*1e4, label="Smith et al., 1954")
-plt.plot(temp, bw_Chapman74*1e4, label="Chapman, 1974")
+plt.plot(temp, bw_Chapman67*1e4, label="Chapman, 1967")
 plt.plot(temp, bw_IAPWS95*1e4, label="IAPWS-95 (p=1 atm)")
 plt.plot(temp, bw_CRC40ed*1e4, label="CRC Handbook, 40th ed.")
 plt.xlim(20, 80) # Limit plot to [ 20 ; 80] degC
@@ -72,12 +72,12 @@ plt.legend()
 np.savetxt("tab_comparison_thermal_expansion_formulas_water.csv",
            np.concatenate((temp[:,np.newaxis], bw_Baldi88[:,np.newaxis],
                            bw_Cekerevac05[:,np.newaxis],
-                           bw_Smith54[:,np.newaxis], bw_Chapman74[:,np.newaxis],
+                           bw_Smith54[:,np.newaxis], bw_Chapman67[:,np.newaxis],
                            bw_IAPWS95[:,np.newaxis], bw_CRC40ed[:,np.newaxis]),
                           axis=1),
            header=("temperature_degC,bw_Baldi88_1atm_1perdegC,"+
                    "bw_Cekerevac05_1atm_1perdegC,bw_Smith54_1perdegC,"+
-                   "bw_Chapman74_1perdegC,bw_IAPWS95_1atm_1perdegC,"+
+                   "bw_Chapman67_1perdegC,bw_IAPWS95_1atm_1perdegC,"+
                    "bw_CRC40ed_1perdegC"),
            delimiter=',')
 
