@@ -39,18 +39,19 @@ def deltaVth(f, vxi, x, t=None):
 
   Arguments:
   ----------
-    f : {'rho','beta', 'small', 'linear'}
+    f : {'rho', 'beta', 'small', 'linear'}
       Integration method. Exact, small coefficient or linear formula available
       after equation (21-24) and (11-12) of Coulibaly and Rotta Loria, 2022.
-      Exact integration available using density 'rho' or thermal expansion
-      coefficient 'beta'. Simplified integrations 'small' and 'linear' only
-      available using thermal expansion coefficient
+      Exact integration available using density f=='rho' or thermal expansion
+      coefficient f=='beta'. Simplified integrations f=='small' and f=='linear'
+      only available using thermal expansion coefficient
     vxi : float
       Initial volume of solid grains / water inside the sample
     x : numpy array
-      Density or volumetric thermal expansion coefficient of grains / water
+      Density if f=='rho', volumetric thermal expansion coefficient of grains or
+      water if f=={'beta', 'small', 'linear'}
     t : numpy array, optional
-      Temperature, only used for 'beta', 'small', and 'linear'
+      Temperature, only used for f=={'beta', 'small', 'linear'}
 
   Returns:
   --------
@@ -121,17 +122,17 @@ def deltaVdr(f, vme, vcal, rho=None, rho0=None):
   Arguments:
   ----------
     f : {'vc', 'mc'}
-      Integration method. Mass conservation (exact) 'mc' with density ratio, and
-      volume conservation 'vc' (simple difference) available after equations
+      Integration method. Mass conservation (exact) f=='mc' with density ratio,
+      volume conservation f=='vc' (simple difference) available after equations
       (25) and (8) of Coulibaly and Rotta Loria, 2022, respectively
     vme : numpy array
       Measured volume change of water by the PVC controller at room temperature
     vcal : numpy array
       Correction for the volume of expelled water obtained during calibration
     rho : numpy array, optional
-      Density of water, only used for 'mc'
+      Density of water, only used for f=='mc'
     rho0 : float, optional
-      Density of water at room temperature, only used for 'mc'
+      Density of water at room temperature, only used for f=='mc'
 
   Returns:
   --------
@@ -152,8 +153,8 @@ def deltaVcal_por(f, vme_por, vwi, bw, bm, t, rho=None, rho0=None):
   Arguments:
   ----------
     f : {'exact', 'simple'}
-      Integration method. Exact or simplified integration after equations (26)
-      and (27) of Coulibaly and Rotta Loria, 2022, respectively
+      Integration method. Exact f=='exact' or simplified f=='simple' after
+      equations (27) and (28) of Coulibaly and Rotta Loria, 2022, respectively
     vme_por : numpy array
       Measured volume change of water by the PVC controller at room temperature
       during the calibration test on porous dummy sample
@@ -166,9 +167,9 @@ def deltaVcal_por(f, vme_por, vwi, bw, bm, t, rho=None, rho0=None):
     t : numpy array
       Temperature
     rho : numpy array, optional
-      Density of water, only used for 'mc'
+      Density of water, only used for f=='exact'
     rho0 : float, optional
-      Density of water at room temperature, only used for 'mc'
+      Density of water at room temperature, only used for f=='exact'
 
   Returns:
   --------
@@ -189,8 +190,8 @@ def resid_sol_por(f, vme_sol, vme_por, vwi, bw, bm, t, rho=None, rho0=None):
   Arguments:
   ----------
     f : {'exact', 'simple'}
-      Integration method. Exact or simplified integration after equations (28)
-      and (29) of Coulibaly and Rotta Loria, 2022, respectively
+      Integration method. Exact f=='exact' or simplified f=='simple' after
+      equations (29) and (30) of Coulibaly and Rotta Loria, 2022, respectively
     vme_sol : numpay array
       Measured volume change of water by the PVC controller at room temperature
       during the calibration test on solid dummy sample
@@ -206,9 +207,9 @@ def resid_sol_por(f, vme_sol, vme_por, vwi, bw, bm, t, rho=None, rho0=None):
     t : numpy array
       Temperature
     rho : numpy array, optional
-      Density of water, only used for 'mc'
+      Density of water, only used for f=='exact'
     rho0 : float, optional
-      Density of water at room temperature, only used for 'mc'
+      Density of water at room temperature, only used for f=='exact'
 
   Returns:
   --------

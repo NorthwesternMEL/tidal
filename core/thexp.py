@@ -314,7 +314,7 @@ def vcte_w_IAPWS95_fit(preset, t, bwl=None, deg=None, ofile=None):
     # Preset values obtained for 3rd degree polynomial,
     # temperature range T=[20;80] degC, pressure range p=[50;1000] kPa
     # in example file "comparison_thexp_water.py"
-    # Equation (11) in Coulibaly and Rotta Loria, 2022
+    # Equation (19) in Coulibaly and Rotta Loria, 2022
     coef = np.array([4.416308e-10, -1.030440e-07, 1.381959e-05, -3.054531e-05])
 
   fit = np.polyval(coef, t)

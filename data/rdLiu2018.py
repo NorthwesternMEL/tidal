@@ -58,10 +58,10 @@ pfi = 1.0 - ni
 # Initial volume of water inside the sample [cm3] (Figure 7)
 vwi = 272.4
 
-# Initial volume of solid grains inside the sample [mm3] (Figure 7)
+# Initial volume of solid grains inside the sample [cm3] (Figure 7)
 vsi = 732.4
 
-# Initial volume of the sample [mm3]
+# Initial volume of the sample [cm3]
 vi = vsi + vwi
 
 # Initial mass of solid grains inside the sample [g]
