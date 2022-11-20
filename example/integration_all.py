@@ -195,7 +195,8 @@ for (ref, study, vu, fnameIAPWS95) in zip(['Ng2016', 'Liu2018'],
   # Coupled drainage-expansion volume change of water [mm3]
   # Coupled term (25) always obtained using Vdr with density ratio from (24)
   dvw_dr = inteq.deltaVw_dr('beta', bw, dvdr_mc, temp) # Vdr from Equation (24)
-  #      = inteq.deltaVw_dr('rho', rhow, dvdr_mc) # Alternative using density
+  #      = inteq.deltaVw_dr('rho', rhow, dvdr_mc) # Using density
+  #      = inteq.deltaVw_dr('ratio', rhow, dvdr_vc, rhow0) # Using density ratio
   # Relative error between coupled/uncoupled expressions [%]
   # Uncoupled term obtained using either (24), to isolate effects of coupling
   # or using (8) to highlight the effects of both density ratio and coupling in

@@ -25,6 +25,7 @@ See the README file in the top-level TIDAL directory.
 """
 
 import numpy as np
+import warnings
 import scipy.integrate as integrate
 
 # Exnternally (publically) accessed methods
@@ -71,24 +72,26 @@ def deltaVth(f, vxi, x, t=None):
     return vxi*x*(t-t[0])
 
 
-def deltaVw_dr(f, x, vdr, t=None):
+def deltaVw_dr(f, x, vdr, y=None):
   """
-  Compute the exact variation of the volume of water inside the sample.
-
-  Coupled effects of expelled water and thermal expansion according to equation
-  (26) of Coulibaly and Rotta Loria, 2022.
+  Compute the variation of the volume of water due to coupled effects of
+  expelled water and thermal expansion according to equation (26) of Coulibaly
+  and Rotta Loria, 2022.
 
   Arguments:
   ----------
-    f : {'rho', 'beta'}
-      Integration method. Density 'rho' or thermal expansion coefficient 'beta'
-      available
+    f : {'rho', 'beta', 'ratio'}
+      Integration method. Integral using density f=='rho', integral using
+      thermal expansion coefficient f=='beta', conversion using density ratio
+      f=='ratio'
     x : numpy array
-      Density or volumetric thermal expansion coefficient of water
+      Density if f=={'rho' , 'ratio'}, volumetric thermal expansion coefficient
+      of water if f=='beta'
     vdr : numpy array
-      Volume of water expelled from the sample
-    t : numpy array, optional
-      Temperature, only used for 'beta'
+      Volume of water expelled from the sample. WARNING: vdr must be calculated
+      using the volume conservation equation deltaVdr('vc',...) when f=='ratio'
+    y : numpy array, optional
+      Temperature if f=='beta', water density at room temperature if f=='ratio'
 
   Returns:
   --------
@@ -100,10 +103,15 @@ def deltaVw_dr(f, x, vdr, t=None):
     return integrate.cumtrapz(x, vdr, initial=0)/x
   elif (f == 'beta'):
     # Volume variation given in terms of thermal expansion coefficient
-    pbw = integrate.cumtrapz(x, t, initial=0) # Primitive of thermal expansion
+    pbw = integrate.cumtrapz(x, y, initial=0) # Primitive of thermal expansion
     expp = np.exp(pbw)
     exppinv = np.exp(-pbw)
     return expp*integrate.cumtrapz(exppinv,vdr,initial=0)
+  elif (f == 'ratio'):
+    # Volume variation given by simple conversion using the density ratio
+    warnings.warn("Integration method 'ratio': vdr must be calculated using "+
+                  "the volume conservation equation deltaVdr('vc',...)")
+    return y*vdr/x
 
 
 def deltaVdr(f, vme, vcal, rho=None, rho0=None):
