@@ -130,7 +130,7 @@ def propagUQ(mean, std, m, c=0.95):
   return f, v_ev, tstar, tstar*np.sqrt(v_ev/m)
 
 
-def std_vi(s_viprep, s_vmec, s_vmuc):
+def std_vi(s_viprep, s_vsat, s_vmec, s_vmuc):
   """
   Compute the standard deviation of the initial volume of the sample.
 
@@ -142,6 +142,8 @@ def std_vi(s_viprep, s_vmec, s_vmuc):
   ----------
     s_viprep : float
       Standard deviation of sample volume after preparation
+    s_vsat : float
+      Standard deviation of sample volume change during saturation
     s_vmec : float
       Standard deviation of measured volume change during consolidation
     s_vmuc : float
@@ -152,7 +154,7 @@ def std_vi(s_viprep, s_vmec, s_vmuc):
     out : float
       Standard deviation of the initial sample volume before thermal loading
   """
-  return np.sqrt(s_viprep**2 + s_vmec**2 + s_vmuc**2)
+  return np.sqrt(s_viprep**2 + s_vsat**2 + s_vmec**2 + s_vmuc**2)
 
 
 def std_vsi(ms, rhosi, s_ms, s_rhosi):
